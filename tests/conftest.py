@@ -5,12 +5,24 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
+import app.routers.ingestion_mail as ingestion_mail_module
 import app.services.releves as releves_module
 from app.config import BASE_DIR
 from app.database import get_session
 from app.main import app
 from app.models import Utilisateur
 from app.security import hash_password
+
+
+@pytest.fixture(autouse=True)
+def _boite_mail_non_configuree_par_defaut(monkeypatch):
+    """Le vrai .env du développeur peut contenir de vrais identifiants Gmail
+    (nécessaires pour l'usage réel de l'appli) — les tests ne doivent jamais
+    s'y connecter ni dépendre de sa présence/absence. Un test qui veut
+    simuler une boîte configurée repointe explicitement ces attributs
+    (voir tests/test_routers/test_ingestion_mail.py)."""
+    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_ADRESSE", "")
+    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_MOT_DE_PASSE", "")
 
 
 @pytest.fixture()

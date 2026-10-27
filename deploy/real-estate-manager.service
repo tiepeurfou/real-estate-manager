@@ -1,0 +1,15 @@
+[Unit]
+Description=Real Estate Manager
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/Documents/perso/git/real-estate-manager
+ExecStart=/home/pi/Documents/perso/git/real-estate-manager/.venv/bin/python -m app.main
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

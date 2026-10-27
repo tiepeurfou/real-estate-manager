@@ -10,6 +10,12 @@ load_dotenv(BASE_DIR / ".env")
 DATABASE_PATH = BASE_DIR / os.environ.get("DATABASE_PATH", "data/app.db")
 ROOT_PATH = os.environ.get("ROOT_PATH", "/real-estate-manager")
 
+# 127.0.0.1 par défaut (sûr pour le dev local). En production, le reverse proxy
+# qui termine le TLS tourne sur un AUTRE Raspberry Pi : APP_HOST doit alors être
+# mis à 0.0.0.0 (ou l'IP LAN de ce Pi) dans .env pour être atteignable depuis le réseau.
+APP_HOST = os.environ.get("APP_HOST", "127.0.0.1")
+APP_PORT = int(os.environ.get("APP_PORT", "8000"))
+
 # En développement uniquement : en production, SECRET_KEY doit être défini dans .env
 # (générer avec `python -c "import secrets; print(secrets.token_hex(32))"`).
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-a-ne-jamais-utiliser-en-production")

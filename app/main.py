@@ -60,11 +60,13 @@ async def redirection_si_non_authentifie(request: Request, exc: HTTPException):
 if __name__ == "__main__":
     import uvicorn
 
-    from app.config import ROOT_PATH
+    from app.config import APP_HOST, APP_PORT, ROOT_PATH
 
     # --root-path informe uvicorn/Starlette du préfixe sous lequel le reverse
     # proxy (sur l'autre Raspberry Pi) expose l'application, pour que les URLs
     # générées (redirections, liens) soient correctes vues depuis l'extérieur.
     # Le reverse proxy doit lui-même retirer ce préfixe avant de transmettre
-    # la requête ici.
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, root_path=ROOT_PATH)
+    # la requête ici. APP_HOST/APP_PORT viennent de .env (voir app/config.py) :
+    # 127.0.0.1 par défaut, à passer à 0.0.0.0 (ou l'IP LAN) en production pour
+    # que l'autre Pi puisse joindre cette appli sur le réseau.
+    uvicorn.run("app.main:app", host=APP_HOST, port=APP_PORT, root_path=ROOT_PATH)

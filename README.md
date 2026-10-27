@@ -55,13 +55,25 @@ Il n'y a pas d'écran d'inscription (application mono-utilisateur) :
 .venv/bin/python -m app.main
 ```
 
-L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle est servie sous `/real-estate-manager/` par un reverse proxy qui termine le TLS (voir `CLAUDE.md`).
+L'application écoute par défaut sur `http://127.0.0.1:8000` (`APP_HOST`/`APP_PORT` dans `.env`). En production, elle est servie sous `/real-estate-manager/` par un reverse proxy qui termine le TLS sur un **autre** Raspberry Pi (voir `CLAUDE.md`) — `APP_HOST` doit alors être mis à `0.0.0.0` (ou l'IP LAN de ce Pi) pour être joignable depuis le réseau.
 
 ## Tests
 
 ```bash
 .venv/bin/python -m pytest tests/ -q
 ```
+
+## Déploiement (systemd)
+
+Le fichier `deploy/real-estate-manager.service` est prêt à l'emploi mais **n'est pas installé automatiquement**. Pour l'activer :
+
+```bash
+sudo cp deploy/real-estate-manager.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now real-estate-manager
+```
+
+Voir `CLAUDE.md` pour la checklist complète avant déploiement (migrations, utilisateur, `APP_HOST`).
 
 ## État d'avancement
 
@@ -74,4 +86,4 @@ L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle 
 - [x] Écran Documents (import manuel de PDF, stockage, extraction) — adaptateurs par gestionnaire non calibrés faute d'exemple réel de compte-rendu.
 - [x] Ingestion mail (IMAP + triage manuel, la boîte dédiée recevant tout le courrier personnel transféré).
 - [x] Tableau de bord (vue d'ensemble, alertes) — désormais la page d'accueil (`/`).
-- [ ] Déploiement systemd.
+- [x] Service systemd préparé (`deploy/real-estate-manager.service`) — pas encore installé/démarré.
