@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block titre %}Virements — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Virements reçus</h1>
+<p>
+    <a href="{{ url_for('virement_nouveau_formulaire') }}">Déclarer un virement reçu</a>
+    · <a href="{{ url_for('depenses_liste') }}">Dépenses</a>
+    · <a href="{{ url_for('paiements_grille') }}">Grille des paiements</a>
+</p>
+
+<table>
+    <thead>
+        <tr><th>Date</th><th>Gestionnaire</th><th>Compte</th><th>Montant</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+        {% for virement in virements %}
+        {% set rapprochement = rapprochements_par_virement.get(virement.id) %}
+        <tr>
+            <td><a href="{{ url_for('virement_detail', virement_id=virement.id) }}">{{ virement.date_reception }}</a></td>
+            <td>{{ virement.gestionnaire.nom if virement.gestionnaire else "—" }}</td>
+            <td>{{ virement.compte_bancaire.libelle if virement.compte_bancaire else "—" }}</td>
+            <td>{{ "%.2f"|format(virement.montant) }} €</td>
+            <td>
+                {% if rapprochement is none %}
+                    Non rapproché
+                {% elif rapprochement.ecart == 0 %}
+                    Rapproché (sans écart)
+                {% else %}
+                    Rapproché (écart {{ "%.2f"|format(rapprochement.ecart) }} €)
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Aucun virement enregistré.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

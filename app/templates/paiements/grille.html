@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block titre %}Grille des paiements — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('virements_liste') }}">← Finances</a></p>
+<h1>Grille des paiements</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Unité</th>
+            {% for mois in mois_liste %}
+            <th>{{ mois.strftime("%m/%Y") }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for unite in unites %}
+        {% set bien = biens_par_id.get(unite.bien_id) %}
+        <tr>
+            <td>{{ bien.libelle if bien else "—" }} — {{ unite.libelle }}</td>
+            {% for mois in mois_liste %}
+            {% set ligne = ligne_par_unite_periode.get((unite.id, mois)) %}
+            <td>{{ ligne.statut.value if ligne else "—" }}</td>
+            {% endfor %}
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ mois_liste|length + 1 }}">Aucune unité.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

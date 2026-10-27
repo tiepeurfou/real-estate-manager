@@ -68,7 +68,7 @@ L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle 
 - [x] Écran Patrimoine (biens, immeubles, unités locatives).
 - [x] Écran Gestionnaires, comptes bancaires et mandats.
 - [x] Écran Locataires et occupations (colocation, clôture de bail, vacance).
-- [ ] Écran Finances (virements, rapprochement, dépenses).
+- [x] Écran Finances (virements, rapprochement assisté, dépenses, grille de paiements).
 - [ ] Ingestion mail (Gmail API) et extraction des comptes-rendus PDF.
 - [ ] Tableau de bord.
 - [ ] Déploiement systemd.

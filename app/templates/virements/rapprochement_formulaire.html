@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block titre %}Rapprocher le virement — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('virements_liste') }}">← Virements</a></p>
+<h1>Rapprocher le virement de {{ "%.2f"|format(virement.montant) }} €</h1>
+<p>
+    Gestionnaire : {{ virement.gestionnaire.nom if virement.gestionnaire else "—" }}
+    · reçu le {{ virement.date_reception }}
+</p>
+
+<script>
+function rapprochement(montant) {
+    return {
+        montant: montant,
+        total: 0,
+        toggle(valeur, coche) {
+            this.total += coche ? valeur : -valeur;
+        },
+    };
+}
+</script>
+
+<div x-data="rapprochement({{ virement.montant }})">
+<form method="post" action="{{ url_for('virement_rapprocher', virement_id=virement.id) }}">
+    <h2>Paiements perçus</h2>
+    <table>
+        <thead><tr><th></th><th>Unité</th><th>Locataire</th><th>Période</th><th>Perçu</th></tr></thead>
+        <tbody>
+            {% for p in candidats_paiements %}
+            {% set unite = unites_par_id.get(p.unite_locative_id) %}
+            {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
+            {% set locataire = locataires_par_id.get(p.locataire_id) if p.locataire_id else None %}
+            <tr>
+                <td><input type="checkbox" name="paiement_ids" value="{{ p.id }}"
+                           x-on:change="toggle({{ p.montant_percu }}, $event.target.checked)"></td>
+                <td>{{ bien.libelle if bien else "—" }} — {{ unite.libelle if unite else "—" }}</td>
+                <td>{{ locataire.nom ~ " " ~ locataire.prenom if locataire else "—" }}</td>
+                <td>{{ p.periode }}</td>
+                <td>{{ "%.2f"|format(p.montant_percu) }} €</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">Aucune ligne de paiement disponible pour ce gestionnaire.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Dépenses avancées</h2>
+    <table>
+        <thead><tr><th></th><th>Bien/Unité</th><th>Catégorie</th><th>Montant</th></tr></thead>
+        <tbody>
+            {% for d in candidats_depenses %}
+            {% set unite = unites_par_id.get(d.unite_locative_id) if d.unite_locative_id else None %}
+            {% set bien = biens_par_id.get(d.bien_id) if d.bien_id else (biens_par_id.get(unite.bien_id) if unite else None) %}
+            <tr>
+                <td><input type="checkbox" name="depense_ids" value="{{ d.id }}"
+                           x-on:change="toggle(-{{ d.montant }}, $event.target.checked)"></td>
+                <td>{{ bien.libelle if bien else "—" }}{{ " — " ~ unite.libelle if unite else "" }}</td>
+                <td>{{ d.categorie }}</td>
+                <td>{{ "%.2f"|format(d.montant) }} €</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Aucune ligne de dépense disponible pour ce gestionnaire.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p>
+        Total sélectionné : <span x-text="total.toFixed(2)"></span> € —
+        Écart avec le virement : <span x-text="(montant - total).toFixed(2)"></span> €
+    </p>
+
+    <button type="submit">Valider le rapprochement</button>
+</form>
+</div>
+{% endblock %}

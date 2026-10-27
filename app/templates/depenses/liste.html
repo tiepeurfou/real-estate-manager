@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block titre %}Dépenses — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('virements_liste') }}">← Finances</a></p>
+<h1>Dépenses</h1>
+
+<form method="get" action="{{ url_for('depenses_liste') }}">
+    <label for="bien_id">Bien</label>
+    <select id="bien_id" name="bien_id">
+        <option value="">Tous</option>
+        {% for b in biens %}
+        <option value="{{ b.id }}" {{ "selected" if bien_id_filtre == b.id|string else "" }}>{{ b.libelle }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="categorie">Catégorie</label>
+    <input type="text" id="categorie" name="categorie" value="{{ categorie_filtre }}">
+
+    <button type="submit">Filtrer</button>
+</form>
+
+<h2>Totaux par catégorie</h2>
+<ul>
+    {% for categorie, total in totaux_par_categorie.items() %}
+    <li>{{ categorie }} : {{ "%.2f"|format(total) }} €</li>
+    {% else %}
+    <li>Aucune dépense.</li>
+    {% endfor %}
+</ul>
+
+<table>
+    <thead>
+        <tr><th>Date</th><th>Bien/Unité</th><th>Catégorie</th><th>Libellé</th><th>Montant</th></tr>
+    </thead>
+    <tbody>
+        {% for ligne in lignes %}
+        {% set unite = unites_par_id.get(ligne.unite_locative_id) if ligne.unite_locative_id else None %}
+        {% set bien = biens_par_id.get(ligne.bien_id) if ligne.bien_id else (biens_par_id.get(unite.bien_id) if unite else None) %}
+        <tr>
+            <td>{{ ligne.date }}</td>
+            <td>{{ bien.libelle if bien else "—" }}{{ " — " ~ unite.libelle if unite else "" }}</td>
+            <td>{{ ligne.categorie }}</td>
+            <td>{{ ligne.libelle }}</td>
+            <td>{{ "%.2f"|format(ligne.montant) }} €</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Aucune dépense.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

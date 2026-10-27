@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block titre %}Virement du {{ virement.date_reception }} — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('virements_liste') }}">← Virements</a></p>
+<h1>Virement de {{ "%.2f"|format(virement.montant) }} €</h1>
+<p>
+    Gestionnaire : {{ virement.gestionnaire.nom if virement.gestionnaire else "—" }}
+    · reçu le {{ virement.date_reception }}
+    · sur {{ virement.compte_bancaire.libelle if virement.compte_bancaire else "—" }}
+</p>
+{% if virement.notes %}<p>{{ virement.notes }}</p>{% endif %}
+
+<form method="post" action="{{ url_for('virement_supprimer', virement_id=virement.id) }}"
+      onsubmit="return confirm('Supprimer ce virement ?');">
+    <button type="submit">Supprimer le virement</button>
+</form>
+
+<h2>Rapprochement</h2>
+<p>Écart : {{ "%.2f"|format(rapprochement.ecart) }} €</p>
+
+<h3>Paiements rapprochés</h3>
+<ul>
+    {% for p in paiements %}
+    <li>{{ p.periode }} — {{ "%.2f"|format(p.montant_percu) }} €</li>
+    {% else %}
+    <li>Aucun.</li>
+    {% endfor %}
+</ul>
+
+<h3>Dépenses rapprochées</h3>
+<ul>
+    {% for d in depenses %}
+    <li>{{ d.categorie }} — {{ "%.2f"|format(d.montant) }} €</li>
+    {% else %}
+    <li>Aucune.</li>
+    {% endfor %}
+</ul>
+
+<form method="post" action="{{ url_for('rapprochement_supprimer', virement_id=virement.id) }}"
+      onsubmit="return confirm('Annuler ce rapprochement ?');">
+    <button type="submit">Annuler le rapprochement</button>
+</form>
+{% endblock %}

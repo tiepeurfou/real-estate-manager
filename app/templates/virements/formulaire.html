@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block titre %}Déclarer un virement reçu — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Déclarer un virement reçu</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('virement_creer') }}" x-data="{ comptesParGestionnaire: {{ comptes_par_gestionnaire_json | safe }} }">
+    <label for="gestionnaire_id">Gestionnaire</label>
+    <select id="gestionnaire_id" name="gestionnaire_id" required
+            x-on:change="$refs.compte.value = comptesParGestionnaire[$event.target.value] || ''">
+        <option value="">—</option>
+        {% for g in gestionnaires %}
+        <option value="{{ g.id }}">{{ g.nom }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="compte_bancaire_id">Compte bancaire</label>
+    <select id="compte_bancaire_id" name="compte_bancaire_id" x-ref="compte" required>
+        <option value="">—</option>
+        {% for c in comptes %}
+        <option value="{{ c.id }}">{{ c.libelle }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="montant">Montant</label>
+    <input type="number" step="0.01" id="montant" name="montant" required>
+
+    <label for="date_reception">Date de réception</label>
+    <input type="date" id="date_reception" name="date_reception" required>
+
+    <label for="periode_couverte">Période couverte (optionnel)</label>
+    <input type="date" id="periode_couverte" name="periode_couverte">
+
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes"></textarea>
+
+    <button type="submit">Enregistrer</button>
+</form>
+{% endblock %}

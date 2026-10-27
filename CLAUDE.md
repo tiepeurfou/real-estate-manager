@@ -43,8 +43,10 @@ Deux rôles de gestionnaire sont donc modélisés séparément : `mise_en_locati
 - [x] **Écran Patrimoine (biens + unités locatives)** (`app/routers/biens.py`, `app/routers/unites.py`) : CRUD complet. Un `appartement_isole` reçoit automatiquement sa seule `UniteLocative` à la création (jamais ajoutée/retirée à la main) ; un `immeuble` gère ses unités une à une. Suppression bloquée (409) si des occupations, mandats, relevés ou lignes financières sont rattachés.
 - [x] **Écran Gestionnaires** (`app/routers/gestionnaires.py`, `app/routers/mandats.py`, `app/routers/comptes_bancaires.py`) : CRUD gestionnaires + comptes bancaires (paramétrage compte↔gestionnaire pour les futurs virements), et gestion des mandats (lier une unité à un gestionnaire avec un rôle, terminer, supprimer). Une "gestion locative complète" se vérifie bien comme deux `MandatGestion` (un par rôle) pour le même gestionnaire — couvert par un test dédié.
 - [x] **Écran Locataires** (`app/routers/locataires.py`, `app/routers/occupations.py`, + routes d'attribution dans `app/routers/unites.py`) : CRUD locataires, filtre actif/historique/tous, attribution d'une unité avec colocation (plusieurs locataires sur une même `Occupation` via `OccupationLocataire`), clôture de bail, détection de vacance (dérivée, aucune occupation active). La page de détail d'un bien affiche désormais l'occupant ou "Vacant" par unité.
-- [ ] Endpoints FastAPI des écrans métier restants (Finances, Documents).
-- [ ] Templates HTMX de ces écrans (tableau de bord, grille de paiements).
+- [x] **Écran Finances** (`app/routers/virements.py`, `app/routers/depenses.py`, `app/routers/paiements.py`) : déclaration manuelle d'un virement reçu (compte bancaire pré-rempli selon le gestionnaire via Alpine.js), rapprochement assisté avec écart calculé en direct côté client (candidats = lignes de paiement/dépense du gestionnaire non encore rapprochées à un autre virement), grille de paiements (unités × mois) et liste des dépenses avec totaux par catégorie. La grille/les dépenses restent vides jusqu'à ce que l'ingestion mail alimente `LignePaiement`/`LigneDepense` — c'est voulu, ces écrans sont de simples vues sur ces tables.
+- [ ] Endpoints FastAPI des écrans métier restants (Documents).
+- [ ] Ingestion mail (Gmail API) + adaptateurs d'extraction PDF par gestionnaire.
+- [ ] Tableau de bord (vue d'ensemble du patrimoine).
 - [ ] Ingestion mail (Gmail API) + adaptateurs d'extraction PDF par gestionnaire.
 - [ ] Déploiement systemd.
 
