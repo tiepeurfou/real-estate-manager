@@ -29,16 +29,27 @@
             <th>Étage</th>
             <th>Surface</th>
             <th>DPE</th>
+            <th>Occupation</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         {% for unite in unites %}
+        {% set occ = occupation_par_unite.get(unite.id) %}
         <tr>
             <td>{{ unite.libelle }}</td>
             <td>{{ unite.etage or "—" }}</td>
             <td>{{ unite.surface_m2 ~ " m²" if unite.surface_m2 else "—" }}</td>
             <td>{{ unite.dpe_lettre.value if unite.dpe_lettre else "—" }}</td>
+            <td>
+                {% if occ %}
+                    {{ occ.locataires | map(attribute="nom") | join(", ") }}
+                    <a href="{{ url_for('occupation_cloturer_formulaire', occupation_id=occ.occupation.id) }}">Clôturer</a>
+                {% else %}
+                    Vacant
+                    <a href="{{ url_for('occupation_nouvelle_formulaire', unite_id=unite.id) }}">Attribuer</a>
+                {% endif %}
+            </td>
             <td>
                 <a href="{{ url_for('unite_modifier_formulaire', unite_id=unite.id) }}">Modifier</a>
                 {% if bien.type.value == "immeuble" %}

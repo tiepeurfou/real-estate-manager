@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block titre %}Locataires — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Locataires</h1>
+<p><a href="{{ url_for('locataire_nouveau_formulaire') }}">Ajouter un locataire</a></p>
+
+<p>
+    Filtrer :
+    <a href="{{ url_for('locataires_liste') }}?statut=tous">Tous</a>
+    · <a href="{{ url_for('locataires_liste') }}?statut=actif">Actifs</a>
+    · <a href="{{ url_for('locataires_liste') }}?statut=historique">Historique</a>
+    ({{ statut }})
+</p>
+
+<table>
+    <thead>
+        <tr><th>Nom</th><th>Prénom</th><th>Garantie</th><th>Unité occupée</th></tr>
+    </thead>
+    <tbody>
+        {% for locataire in locataires %}
+        {% set occ = occupation_active_par_locataire.get(locataire.id) %}
+        <tr>
+            <td><a href="{{ url_for('locataire_detail', locataire_id=locataire.id) }}">{{ locataire.nom }}</a></td>
+            <td>{{ locataire.prenom }}</td>
+            <td>{{ locataire.type_garantie.value }}</td>
+            <td>
+                {% if occ and occ.bien and occ.unite %}
+                    {{ occ.bien.libelle }} — {{ occ.unite.libelle }}
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">Aucun locataire.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

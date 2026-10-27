@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ "Modifier" if locataire else "Ajouter" }} un locataire — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>{{ "Modifier" if locataire else "Ajouter" }} un locataire</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('locataire_modifier', locataire_id=locataire.id) if locataire else url_for('locataire_creer') }}">
+    <label for="nom">Nom</label>
+    <input type="text" id="nom" name="nom" value="{{ locataire.nom if locataire else '' }}" required>
+
+    <label for="prenom">Prénom</label>
+    <input type="text" id="prenom" name="prenom" value="{{ locataire.prenom if locataire else '' }}" required>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" value="{{ locataire.email if locataire and locataire.email else '' }}">
+
+    <label for="telephone">Téléphone</label>
+    <input type="text" id="telephone" name="telephone" value="{{ locataire.telephone if locataire and locataire.telephone else '' }}">
+
+    <label for="type_garantie">Garantie</label>
+    <select id="type_garantie" name="type_garantie">
+        {% for t in types_garantie %}
+        <option value="{{ t.value }}" {{ "selected" if locataire and locataire.type_garantie == t else "" }}>{{ t.value }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="garant_nom">Nom du garant (si applicable)</label>
+    <input type="text" id="garant_nom" name="garant_nom" value="{{ locataire.garant_nom if locataire and locataire.garant_nom else '' }}">
+
+    <label for="garant_contact">Contact du garant</label>
+    <input type="text" id="garant_contact" name="garant_contact" value="{{ locataire.garant_contact if locataire and locataire.garant_contact else '' }}">
+
+    <button type="submit">Enregistrer</button>
+</form>
+{% endblock %}

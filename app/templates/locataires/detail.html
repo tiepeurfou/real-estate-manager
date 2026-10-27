@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ locataire.nom }} {{ locataire.prenom }} — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('locataires_liste') }}">← Locataires</a></p>
+<h1>{{ locataire.nom }} {{ locataire.prenom }}</h1>
+<p>{{ locataire.email or "—" }} · {{ locataire.telephone or "—" }}</p>
+<p>Garantie : {{ locataire.type_garantie.value }}</p>
+{% if locataire.garant_nom %}<p>Garant : {{ locataire.garant_nom }} ({{ locataire.garant_contact or "—" }})</p>{% endif %}
+
+<p>
+    <a href="{{ url_for('locataire_modifier_formulaire', locataire_id=locataire.id) }}">Modifier</a>
+    <form method="post" action="{{ url_for('locataire_supprimer', locataire_id=locataire.id) }}" style="display:inline"
+          onsubmit="return confirm('Supprimer ce locataire ?');">
+        <button type="submit">Supprimer</button>
+    </form>
+</p>
+
+<h2>Historique des occupations</h2>
+<table>
+    <thead>
+        <tr><th>Bien</th><th>Unité</th><th>Entrée</th><th>Sortie</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+        {% for occupation in occupations %}
+        {% set unite = unites_par_id.get(occupation.unite_locative_id) %}
+        {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
+        <tr>
+            <td>{{ bien.libelle if bien else "—" }}</td>
+            <td>{{ unite.libelle if unite else "—" }}</td>
+            <td>{{ occupation.date_entree }}</td>
+            <td>{{ occupation.date_sortie or "—" }}</td>
+            <td>{{ occupation.statut.value }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Aucune occupation.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, SECRET_KEY, SESSION_COOKIE_HTTPS_ONLY
 from app.models import Utilisateur
-from app.routers import auth, biens, comptes_bancaires, gestionnaires, mandats, unites
+from app.routers import auth, biens, comptes_bancaires, gestionnaires, locataires, mandats, occupations, unites
 from app.security import get_current_user
 from app.templating import templates
 
@@ -28,6 +28,8 @@ app.include_router(unites.router)
 app.include_router(gestionnaires.router)
 app.include_router(mandats.router)
 app.include_router(comptes_bancaires.router)
+app.include_router(locataires.router)
+app.include_router(occupations.router)
 
 
 @app.exception_handler(HTTPException)

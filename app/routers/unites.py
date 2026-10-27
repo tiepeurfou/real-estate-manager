@@ -3,8 +3,18 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Bien, LigneDepense, LignePaiement, MandatGestion, Occupation, UniteLocative, Utilisateur
-from app.models.enums import DpeLettre, TypeBien
+from app.models import (
+    Bien,
+    LigneDepense,
+    LignePaiement,
+    Locataire,
+    MandatGestion,
+    Occupation,
+    OccupationLocataire,
+    UniteLocative,
+    Utilisateur,
+)
+from app.models.enums import DpeLettre, StatutOccupation, TypeBien
 from app.security import get_current_user
 from app.services.formulaires import parser_date_optionnelle, parser_float_optionnel, parser_int_optionnel
 from app.templating import templates
@@ -127,3 +137,100 @@ def unite_supprimer(
     session.commit()
 
     return RedirectResponse(url=request.url_for("bien_detail", bien_id=bien_id), status_code=303)
+
+
+@router.get("/{unite_id}/occupations/nouvelle", name="occupation_nouvelle_formulaire")
+def occupation_nouvelle_formulaire(
+    request: Request,
+    unite_id: int,
+    session: Session = Depends(get_session),
+    utilisateur: Utilisateur = Depends(get_current_user),
+):
+    unite = session.get(UniteLocative, unite_id)
+    if unite is None:
+        raise HTTPException(status_code=404, detail="Unité locative introuvable")
+
+    occupation_active = session.exec(
+        select(Occupation).where(
+            Occupation.unite_locative_id == unite_id, Occupation.statut == StatutOccupation.ACTIVE
+        )
+    ).first()
+    if occupation_active is not None:
+        raise HTTPException(status_code=409, detail="Cette unité est déjà occupée.")
+
+    locataires = session.exec(select(Locataire).order_by(Locataire.nom, Locataire.prenom)).all()
+
+    return templates.TemplateResponse(
+        request,
+        "occupations/nouvelle.html",
+        {"utilisateur": utilisateur, "unite": unite, "locataires": locataires, "erreur": None},
+    )
+
+
+@router.post("/{unite_id}/occupations", name="occupation_creer")
+def occupation_creer(
+    request: Request,
+    unite_id: int,
+    locataire_ids: list[str] = Form([]),
+    date_entree: str = Form(...),
+    loyer_mensuel_hc: str = Form(...),
+    charges_mensuelles: str = Form("0"),
+    depot_garantie: str = Form(""),
+    session: Session = Depends(get_session),
+    utilisateur: Utilisateur = Depends(get_current_user),
+):
+    unite = session.get(UniteLocative, unite_id)
+    if unite is None:
+        raise HTTPException(status_code=404, detail="Unité locative introuvable")
+
+    occupation_active = session.exec(
+        select(Occupation).where(
+            Occupation.unite_locative_id == unite_id, Occupation.statut == StatutOccupation.ACTIVE
+        )
+    ).first()
+    if occupation_active is not None:
+        raise HTTPException(status_code=409, detail="Cette unité est déjà occupée.")
+
+    try:
+        date_entree_parsee = parser_date_optionnelle(date_entree)
+        if date_entree_parsee is None:
+            raise ValueError("la date d'entrée est obligatoire")
+        loyer_parse = float(loyer_mensuel_hc)
+        charges_parsees = parser_float_optionnel(charges_mensuelles) or 0
+        depot_parse = parser_float_optionnel(depot_garantie)
+        if not locataire_ids:
+            raise ValueError("sélectionnez au moins un locataire")
+    except ValueError as erreur:
+        locataires = session.exec(select(Locataire).order_by(Locataire.nom, Locataire.prenom)).all()
+        return templates.TemplateResponse(
+            request,
+            "occupations/nouvelle.html",
+            {
+                "utilisateur": utilisateur,
+                "unite": unite,
+                "locataires": locataires,
+                "erreur": f"Données invalides : {erreur}",
+            },
+            status_code=400,
+        )
+
+    occupation = Occupation(
+        unite_locative_id=unite_id,
+        date_entree=date_entree_parsee,
+        loyer_mensuel_hc=loyer_parse,
+        charges_mensuelles=charges_parsees,
+        depot_garantie=depot_parse,
+        statut=StatutOccupation.ACTIVE,
+    )
+    session.add(occupation)
+    session.commit()
+    session.refresh(occupation)
+
+    for locataire_id in locataire_ids:
+        locataire = session.get(Locataire, int(locataire_id))
+        if locataire is None:
+            raise HTTPException(status_code=404, detail=f"Locataire {locataire_id} introuvable")
+        session.add(OccupationLocataire(occupation_id=occupation.id, locataire_id=locataire.id))
+    session.commit()
+
+    return RedirectResponse(url=request.url_for("bien_detail", bien_id=unite.bien_id), status_code=303)

@@ -3,8 +3,18 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Bien, LigneDepense, MandatGestion, Occupation, ReleveGestion, UniteLocative, Utilisateur
-from app.models.enums import DpeLettre, TypeBien
+from app.models import (
+    Bien,
+    LigneDepense,
+    Locataire,
+    MandatGestion,
+    Occupation,
+    OccupationLocataire,
+    ReleveGestion,
+    UniteLocative,
+    Utilisateur,
+)
+from app.models.enums import DpeLettre, StatutOccupation, TypeBien
 from app.security import get_current_user
 from app.services.formulaires import parser_date_optionnelle, parser_float_optionnel, parser_int_optionnel
 from app.templating import templates
@@ -27,6 +37,26 @@ def _bien_a_des_donnees_liees(session: Session, bien: Bien) -> bool:
             return True
 
     return False
+
+
+def _occupation_active_par_unite(session: Session, unite_ids: list[int]) -> dict[int, dict]:
+    if not unite_ids:
+        return {}
+
+    occupations = session.exec(
+        select(Occupation).where(
+            Occupation.unite_locative_id.in_(unite_ids), Occupation.statut == StatutOccupation.ACTIVE
+        )
+    ).all()
+
+    resultat: dict[int, dict] = {}
+    for occupation in occupations:
+        liens = session.exec(
+            select(OccupationLocataire).where(OccupationLocataire.occupation_id == occupation.id)
+        ).all()
+        locataires = [session.get(Locataire, lien.locataire_id) for lien in liens]
+        resultat[occupation.unite_locative_id] = {"occupation": occupation, "locataires": locataires}
+    return resultat
 
 
 @router.get("", name="biens_liste")
@@ -112,8 +142,17 @@ def bien_detail(
         select(UniteLocative).where(UniteLocative.bien_id == bien_id).order_by(UniteLocative.libelle)
     ).all()
 
+    occupation_par_unite = _occupation_active_par_unite(session, [u.id for u in unites])
+
     return templates.TemplateResponse(
-        request, "biens/detail.html", {"utilisateur": utilisateur, "bien": bien, "unites": unites}
+        request,
+        "biens/detail.html",
+        {
+            "utilisateur": utilisateur,
+            "bien": bien,
+            "unites": unites,
+            "occupation_par_unite": occupation_par_unite,
+        },
     )
 
 
