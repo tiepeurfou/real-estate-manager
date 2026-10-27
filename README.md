@@ -7,7 +7,7 @@ Application personnelle de gestion d'un patrimoine locatif : biens et immeubles,
 - Gestion du patrimoine : biens isolés et immeubles, avec leurs unités locatives (surface, DPE, régime fiscal...).
 - Gestionnaires et mandats : qui s'occupe de la mise en location, qui s'occupe de la gestion (loyers, urgences, comptes-rendus), avec association aux biens/unités.
 - Locataires : association aux unités, historique des occupations, type de garantie (VISALE, assurance loyers impayés, garant), détection des unités vacantes.
-- Suivi financier : lecture des comptes-rendus de gestion reçus par mail (PDF), suivi mensuel des paiements/impayés/dettes, dépenses par bien, déclaration manuelle des virements reçus et rapprochement avec les paiements attendus.
+- Suivi financier : triage manuel de la boîte mail dédiée (import des comptes-rendus PDF), suivi mensuel des paiements/impayés/dettes, dépenses par bien, déclaration manuelle des virements reçus et rapprochement avec les paiements attendus.
 - Vue d'ensemble du patrimoine (tableau de bord).
 
 ## Stack technique
@@ -32,6 +32,8 @@ Générer une vraie clé secrète pour `.env` :
 ```bash
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
+
+Pour l'ingestion mail, renseigner dans `.env` l'adresse de la boîte Gmail dédiée et un **mot de passe d'application** (pas le mot de passe du compte — voir `CLAUDE.md`) : `GMAIL_IMAP_ADRESSE`, `GMAIL_IMAP_MOT_DE_PASSE`.
 
 ## Base de données
 
@@ -70,6 +72,6 @@ L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle 
 - [x] Écran Locataires et occupations (colocation, clôture de bail, vacance).
 - [x] Écran Finances (virements, rapprochement assisté, dépenses, grille de paiements).
 - [x] Écran Documents (import manuel de PDF, stockage, extraction) — adaptateurs par gestionnaire non calibrés faute d'exemple réel de compte-rendu.
-- [ ] Ingestion mail (Gmail API) — réutilisera le pipeline d'import déjà en place.
+- [x] Ingestion mail (IMAP + triage manuel, la boîte dédiée recevant tout le courrier personnel transféré).
 - [ ] Tableau de bord.
 - [ ] Déploiement systemd.

@@ -13,6 +13,7 @@ from app.routers import (
     depenses,
     documents,
     gestionnaires,
+    ingestion_mail,
     locataires,
     mandats,
     occupations,
@@ -47,6 +48,7 @@ app.include_router(virements.router)
 app.include_router(depenses.router)
 app.include_router(paiements.router)
 app.include_router(documents.router)
+app.include_router(ingestion_mail.router)
 
 
 @app.exception_handler(HTTPException)

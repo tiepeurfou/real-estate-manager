@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block titre %}Ingestion mail — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Triage de la boîte mail</h1>
+<p>
+    La boîte dédiée reçoit tout le courrier transféré depuis la boîte personnelle : le tri se fait ici
+    manuellement, document par document — aucun filtrage automatique par expéditeur.
+</p>
+
+{% if not configure %}
+    <p class="erreur">
+        Boîte mail non configurée : renseignez GMAIL_IMAP_ADRESSE et GMAIL_IMAP_MOT_DE_PASSE dans le fichier .env
+        (voir CLAUDE.md).
+    </p>
+{% elif erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% else %}
+    <table>
+        <thead>
+            <tr><th>Reçu le</th><th>Expéditeur</th><th>Objet</th><th>Pièce jointe</th><th>Importer vers</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for candidat in candidats %}
+            <tr>
+                <td>{{ candidat.date.strftime("%d/%m/%Y") }}</td>
+                <td>{{ candidat.expediteur }}</td>
+                <td>{{ candidat.objet }}</td>
+                <td>{{ candidat.nom_piece_jointe }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('ingestion_mail_importer') }}" class="formulaire-candidat">
+                        <input type="hidden" name="message_uid" value="{{ candidat.message_uid }}">
+                        <input type="hidden" name="nom_piece_jointe" value="{{ candidat.nom_piece_jointe }}">
+                        <select name="gestionnaire_id" required>
+                            <option value="">Gestionnaire</option>
+                            {% for g in gestionnaires %}
+                            <option value="{{ g.id }}">{{ g.nom }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="bien_id" required>
+                            <option value="">Bien</option>
+                            {% for b in biens %}
+                            <option value="{{ b.id }}">{{ b.libelle }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="date" name="periode" required>
+                        <button type="submit">Importer</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="{{ url_for('ingestion_mail_ignorer') }}">
+                        <input type="hidden" name="message_uid" value="{{ candidat.message_uid }}">
+                        <input type="hidden" name="nom_piece_jointe" value="{{ candidat.nom_piece_jointe }}">
+                        <button type="submit">Ignorer</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Aucun nouveau document à trier.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

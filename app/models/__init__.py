@@ -2,6 +2,7 @@
 (nécessaire pour la création des tables et l'autogénération Alembic)."""
 
 from app.models.bien import Bien
+from app.models.candidat_courriel_traite import CandidatCourrielTraite
 from app.models.compte_bancaire import CompteBancaire
 from app.models.gestionnaire import Gestionnaire
 from app.models.ligne_depense import LigneDepense
@@ -19,6 +20,7 @@ from app.models.virement_recu import VirementRecu
 
 __all__ = [
     "Bien",
+    "CandidatCourrielTraite",
     "CompteBancaire",
     "Gestionnaire",
     "LigneDepense",

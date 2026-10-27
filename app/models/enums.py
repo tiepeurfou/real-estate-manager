@@ -49,3 +49,8 @@ class StatutPaiement(str, Enum):
     PAYE = "paye"
     IMPAYE = "impaye"
     PARTIEL = "partiel"
+
+
+class StatutCandidatCourriel(str, Enum):
+    IMPORTE = "importe"
+    IGNORE = "ignore"
