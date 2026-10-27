@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block titre %}Tableau de bord — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Tableau de bord</h1>
+
+<section class="synthese">
+    <div class="carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ donnees.nb_biens }}</span>
+        <span class="carte-chiffre__libelle">biens</span>
+    </div>
+    <div class="carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.taux_occupation * 100) }} %</span>
+        <span class="carte-chiffre__libelle">taux d'occupation ({{ donnees.nb_unites_occupees }}/{{ donnees.nb_unites }})</span>
+    </div>
+    <div class="carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.loyers_percus_mois) }} € / {{ "%.0f"|format(donnees.loyers_attendus_mois) }} €</span>
+        <span class="carte-chiffre__libelle">loyers perçus ce mois</span>
+    </div>
+    <div class="carte-chiffre {{ 'carte-chiffre--alerte' if donnees.dettes_totales > 0 else '' }}">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.dettes_totales) }} €</span>
+        <span class="carte-chiffre__libelle">dettes locataires en cours</span>
+    </div>
+    <div class="carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.depenses_mois) }} €</span>
+        <span class="carte-chiffre__libelle">dépenses ce mois</span>
+    </div>
+</section>
+
+<h2>Patrimoine</h2>
+<section class="tuiles-biens">
+    {% for tuile in donnees.tuiles_biens %}
+    <a class="tuile-bien {{ 'tuile-bien--alerte' if tuile.en_alerte else '' }}" href="{{ url_for('bien_detail', bien_id=tuile.bien_id) }}">
+        <strong>{{ tuile.libelle }}</strong>
+        <span>{{ tuile.nb_occupees }}/{{ tuile.nb_unites }} occupées</span>
+    </a>
+    {% else %}
+    <p>Aucun bien enregistré.</p>
+    {% endfor %}
+</section>
+
+<h2>Alertes</h2>
+<ul class="alertes">
+    {% for a in donnees.unites_vacantes %}
+    <li>Unité vacante : {{ a.bien_libelle }} — {{ a.unite_libelle }}</li>
+    {% endfor %}
+    {% for a in donnees.impayes %}
+    <li>Impayé : {{ a.bien_libelle }} — {{ a.unite_libelle }} ({{ a.periode.strftime("%m/%Y") }}) — {{ "%.2f"|format(a.montant_du) }} € dus</li>
+    {% endfor %}
+    {% for a in donnees.releves_en_erreur %}
+    <li>
+        Extraction en erreur : {{ a.gestionnaire_nom }} — {{ a.bien_libelle }} —
+        <a href="{{ url_for('document_detail', releve_id=a.releve_gestion_id) }}">voir le document</a>
+    </li>
+    {% endfor %}
+    {% for a in donnees.virements_manquants %}
+    <li>Virement non encore déclaré ce mois pour {{ a.gestionnaire_nom }}</li>
+    {% endfor %}
+    {% if not donnees.unites_vacantes and not donnees.impayes and not donnees.releves_en_erreur and not donnees.virements_manquants %}
+    <li>Aucune alerte.</li>
+    {% endif %}
+</ul>
+{% endblock %}

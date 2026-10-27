@@ -1,11 +1,10 @@
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, SECRET_KEY, SESSION_COOKIE_HTTPS_ONLY
-from app.models import Utilisateur
 from app.routers import (
     auth,
     biens,
@@ -18,11 +17,10 @@ from app.routers import (
     mandats,
     occupations,
     paiements,
+    tableau_de_bord,
     unites,
     virements,
 )
-from app.security import get_current_user
-from app.templating import templates
 
 app = FastAPI(title="Real Estate Manager")
 
@@ -36,6 +34,7 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
 
+app.include_router(tableau_de_bord.router)
 app.include_router(auth.router)
 app.include_router(biens.router)
 app.include_router(unites.router)
@@ -56,11 +55,6 @@ async def redirection_si_non_authentifie(request: Request, exc: HTTPException):
     if exc.status_code == 401:
         return RedirectResponse(url=request.url_for("login_form"), status_code=303)
     return await http_exception_handler(request, exc)
-
-
-@app.get("/", name="accueil")
-def accueil(request: Request, utilisateur: Utilisateur = Depends(get_current_user)):
-    return templates.TemplateResponse(request, "accueil.html", {"utilisateur": utilisateur})
 
 
 if __name__ == "__main__":

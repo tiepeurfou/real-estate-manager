@@ -73,5 +73,5 @@ L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle 
 - [x] Écran Finances (virements, rapprochement assisté, dépenses, grille de paiements).
 - [x] Écran Documents (import manuel de PDF, stockage, extraction) — adaptateurs par gestionnaire non calibrés faute d'exemple réel de compte-rendu.
 - [x] Ingestion mail (IMAP + triage manuel, la boîte dédiée recevant tout le courrier personnel transféré).
-- [ ] Tableau de bord.
+- [x] Tableau de bord (vue d'ensemble, alertes) — désormais la page d'accueil (`/`).
 - [ ] Déploiement systemd.

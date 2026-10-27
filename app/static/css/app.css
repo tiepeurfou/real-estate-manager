@@ -35,3 +35,61 @@ body {
 .formulaire-connexion .erreur {
     color: #c0392b;
 }
+
+.synthese {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.carte-chiffre {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid #8884;
+    border-radius: 0.5rem;
+    min-width: 10rem;
+}
+
+.carte-chiffre--alerte {
+    border-color: #c0392b;
+}
+
+.carte-chiffre__valeur {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.carte-chiffre__libelle {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.tuiles-biens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.tuile-bien {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid #8884;
+    border-radius: 0.5rem;
+    min-width: 10rem;
+    text-decoration: none;
+    color: inherit;
+}
+
+.tuile-bien--alerte {
+    border-color: #c0392b;
+}
+
+.alertes {
+    padding-left: 1.2rem;
+}
