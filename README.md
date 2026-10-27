@@ -66,7 +66,7 @@ L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle 
 - [x] Modèle de données (15 entités) et migrations.
 - [x] Authentification.
 - [x] Écran Patrimoine (biens, immeubles, unités locatives).
-- [ ] Écran Gestionnaires et mandats.
+- [x] Écran Gestionnaires, comptes bancaires et mandats.
 - [ ] Écran Locataires et occupations.
 - [ ] Écran Finances (virements, rapprochement, dépenses).
 - [ ] Ingestion mail (Gmail API) et extraction des comptes-rendus PDF.

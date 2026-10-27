@@ -40,8 +40,9 @@ Deux rôles de gestionnaire sont donc modélisés séparément : `mise_en_locati
 - [x] Architecture, modèle de données et écrans clés discutés et actés.
 - [x] **Modèle de données implémenté** (`app/models/`) : 15 entités + migration initiale Alembic appliquée et testée.
 - [x] **Squelette applicatif FastAPI + authentification** (`app/main.py`, `app/security.py`, `app/routers/auth.py`) : login/logout par session cookie, mots de passe Argon2, pas d'écran d'inscription (créer un utilisateur via `scripts/creer_utilisateur.py`).
-- [x] **Écran Patrimoine (biens + unités locatives)** (`app/routers/biens.py`, `app/routers/unites.py`) : CRUD complet. Un `appartement_isole` reçoit automatiquement sa seule `UniteLocative` à la création (jamais ajoutée/retirée à la main) ; un `immeuble` gère ses unités une à une. Suppression bloquée (409) si des occupations, mandats, relevés ou lignes financières sont rattachés. 51 tests unitaires/intégration au total, tous verts ; parcours réel vérifié en lançant le serveur (login → création de bien → ajout d'unité → affichage).
-- [ ] Endpoints FastAPI des écrans métier restants (Gestionnaires, Locataires, Finances, Documents).
+- [x] **Écran Patrimoine (biens + unités locatives)** (`app/routers/biens.py`, `app/routers/unites.py`) : CRUD complet. Un `appartement_isole` reçoit automatiquement sa seule `UniteLocative` à la création (jamais ajoutée/retirée à la main) ; un `immeuble` gère ses unités une à une. Suppression bloquée (409) si des occupations, mandats, relevés ou lignes financières sont rattachés.
+- [x] **Écran Gestionnaires** (`app/routers/gestionnaires.py`, `app/routers/mandats.py`, `app/routers/comptes_bancaires.py`) : CRUD gestionnaires + comptes bancaires (paramétrage compte↔gestionnaire pour les futurs virements), et gestion des mandats (lier une unité à un gestionnaire avec un rôle, terminer, supprimer). Une "gestion locative complète" se vérifie bien comme deux `MandatGestion` (un par rôle) pour le même gestionnaire — couvert par un test dédié.
+- [ ] Endpoints FastAPI des écrans métier restants (Locataires, Finances, Documents).
 - [ ] Templates HTMX de ces écrans (tableau de bord, grille de paiements).
 - [ ] Ingestion mail (Gmail API) + adaptateurs d'extraction PDF par gestionnaire.
 - [ ] Déploiement systemd.

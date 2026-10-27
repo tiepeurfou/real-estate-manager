@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ "Modifier" if compte else "Ajouter" }} un compte bancaire — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>{{ "Modifier" if compte else "Ajouter" }} un compte bancaire</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('compte_bancaire_modifier', compte_id=compte.id) if compte else url_for('compte_bancaire_creer') }}">
+    {% if not compte %}
+    <label for="banque">Banque</label>
+    <select id="banque" name="banque" required>
+        {% for b in banques %}
+        <option value="{{ b.value }}">{{ b.value }}</option>
+        {% endfor %}
+    </select>
+    {% endif %}
+
+    <label for="libelle">Libellé</label>
+    <input type="text" id="libelle" name="libelle" value="{{ compte.libelle if compte else '' }}" required>
+
+    <label for="iban">IBAN (optionnel)</label>
+    <input type="text" id="iban" name="iban" value="{{ compte.iban if compte and compte.iban else '' }}">
+
+    <button type="submit">Enregistrer</button>
+</form>
+{% endblock %}

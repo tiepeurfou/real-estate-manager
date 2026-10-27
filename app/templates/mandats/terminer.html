@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block titre %}Terminer un mandat — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Terminer le mandat</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('mandat_terminer', mandat_id=mandat.id) }}">
+    <label for="date_fin">Date de fin</label>
+    <input type="date" id="date_fin" name="date_fin" required>
+    <button type="submit">Confirmer</button>
+</form>
+{% endblock %}

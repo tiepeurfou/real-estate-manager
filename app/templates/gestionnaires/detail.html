@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ gestionnaire.nom }} — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('gestionnaires_liste') }}">← Gestionnaires</a></p>
+<h1>{{ gestionnaire.nom }}</h1>
+<p>{{ gestionnaire.contact_email or "—" }} · {{ gestionnaire.contact_tel or "—" }}</p>
+<p>Compte bancaire : {{ gestionnaire.compte_bancaire.libelle if gestionnaire.compte_bancaire else "—" }}</p>
+
+<p>
+    <a href="{{ url_for('gestionnaire_modifier_formulaire', gestionnaire_id=gestionnaire.id) }}">Modifier</a>
+    <form method="post" action="{{ url_for('gestionnaire_supprimer', gestionnaire_id=gestionnaire.id) }}" style="display:inline"
+          onsubmit="return confirm('Supprimer ce gestionnaire ?');">
+        <button type="submit">Supprimer</button>
+    </form>
+</p>
+
+<h2>Mandats</h2>
+<p><a href="{{ url_for('mandat_nouveau_formulaire', gestionnaire_id=gestionnaire.id) }}">Lier une unité</a></p>
+
+<table>
+    <thead>
+        <tr><th>Bien</th><th>Unité</th><th>Rôle</th><th>Début</th><th>Fin</th><th></th></tr>
+    </thead>
+    <tbody>
+        {% for mandat in mandats %}
+        {% set unite = unites_par_id.get(mandat.unite_locative_id) %}
+        {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
+        <tr>
+            <td>{{ bien.libelle if bien else "—" }}</td>
+            <td>{{ unite.libelle if unite else "—" }}</td>
+            <td>{{ mandat.role.value }}</td>
+            <td>{{ mandat.date_debut }}</td>
+            <td>{{ mandat.date_fin or "—" }}</td>
+            <td>
+                {% if not mandat.date_fin %}
+                <a href="{{ url_for('mandat_terminer_formulaire', mandat_id=mandat.id) }}">Terminer</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('mandat_supprimer', mandat_id=mandat.id) }}" style="display:inline"
+                      onsubmit="return confirm('Supprimer ce mandat ?');">
+                    <button type="submit">Supprimer</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Aucun mandat.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
