@@ -1,0 +1,37 @@
+:root {
+    color-scheme: light dark;
+    font-family: system-ui, sans-serif;
+}
+
+body {
+    margin: 0;
+}
+
+.entete {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #8884;
+}
+
+.entete__nav {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.contenu {
+    padding: 1.5rem;
+}
+
+.formulaire-connexion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 320px;
+}
+
+.formulaire-connexion .erreur {
+    color: #c0392b;
+}

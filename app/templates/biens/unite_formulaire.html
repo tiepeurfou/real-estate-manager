@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ "Modifier" if unite else "Ajouter" }} une unité — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>{{ "Modifier" if unite else "Ajouter" }} une unité — {{ bien.libelle }}</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('unite_modifier', unite_id=unite.id) if unite else url_for('unite_creer', bien_id=bien.id) }}">
+    <label for="libelle">Libellé</label>
+    <input type="text" id="libelle" name="libelle" value="{{ unite.libelle if unite else '' }}" required>
+
+    <label for="etage">Étage</label>
+    <input type="text" id="etage" name="etage" value="{{ unite.etage if unite and unite.etage else '' }}">
+
+    <label for="surface_m2">Surface (m²)</label>
+    <input type="number" step="0.1" id="surface_m2" name="surface_m2" value="{{ unite.surface_m2 if unite and unite.surface_m2 else '' }}">
+
+    <label for="nb_pieces">Nombre de pièces</label>
+    <input type="number" step="1" id="nb_pieces" name="nb_pieces" value="{{ unite.nb_pieces if unite and unite.nb_pieces else '' }}">
+
+    <label for="dpe_lettre">DPE</label>
+    <select id="dpe_lettre" name="dpe_lettre">
+        <option value="">—</option>
+        {% for lettre in lettres_dpe %}
+        <option value="{{ lettre.value }}" {{ "selected" if unite and unite.dpe_lettre == lettre else "" }}>{{ lettre.value }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="dpe_date">Date du diagnostic</label>
+    <input type="date" id="dpe_date" name="dpe_date" value="{{ unite.dpe_date if unite and unite.dpe_date else '' }}">
+
+    <label for="regime_fiscal">Régime fiscal</label>
+    <input type="text" id="regime_fiscal" name="regime_fiscal" value="{{ unite.regime_fiscal if unite and unite.regime_fiscal else '' }}">
+
+    <button type="submit">Enregistrer</button>
+</form>
+{% endblock %}

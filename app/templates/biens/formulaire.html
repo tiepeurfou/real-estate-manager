@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ "Modifier" if bien else "Ajouter" }} un bien — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>{{ "Modifier" if bien else "Ajouter" }} un bien</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('bien_modifier', bien_id=bien.id) if bien else url_for('bien_creer') }}">
+    {% if not bien %}
+    <label for="type">Type</label>
+    <select id="type" name="type" required>
+        {% for t in types_bien %}
+        <option value="{{ t.value }}">{{ t.value }}</option>
+        {% endfor %}
+    </select>
+    {% endif %}
+
+    <label for="libelle">Libellé</label>
+    <input type="text" id="libelle" name="libelle" value="{{ bien.libelle if bien else '' }}" required>
+
+    <label for="adresse_rue">Adresse</label>
+    <input type="text" id="adresse_rue" name="adresse_rue" value="{{ bien.adresse_rue if bien else '' }}" required>
+
+    <label for="adresse_code_postal">Code postal</label>
+    <input type="text" id="adresse_code_postal" name="adresse_code_postal" value="{{ bien.adresse_code_postal if bien else '' }}" required>
+
+    <label for="adresse_ville">Ville</label>
+    <input type="text" id="adresse_ville" name="adresse_ville" value="{{ bien.adresse_ville if bien else '' }}" required>
+
+    <label for="date_acquisition">Date d'acquisition</label>
+    <input type="date" id="date_acquisition" name="date_acquisition" value="{{ bien.date_acquisition if bien and bien.date_acquisition else '' }}">
+
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes">{{ bien.notes if bien and bien.notes else '' }}</textarea>
+
+    <button type="submit">Enregistrer</button>
+</form>
+{% endblock %}

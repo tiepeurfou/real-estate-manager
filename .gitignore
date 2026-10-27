@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Données locales (base, documents, secrets) — jamais versionnées
+data/app.db
+data/documents/*
+!data/documents/.gitkeep
+data/credentials/*
+!data/credentials/.gitkeep
+
+.env
+*.log

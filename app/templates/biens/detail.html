@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ bien.libelle }} — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('biens_liste') }}">← Patrimoine</a></p>
+<h1>{{ bien.libelle }}</h1>
+<p>{{ bien.adresse_rue }}, {{ bien.adresse_code_postal }} {{ bien.adresse_ville }}</p>
+<p>Type : {{ bien.type.value }}</p>
+{% if bien.notes %}<p>{{ bien.notes }}</p>{% endif %}
+
+<p>
+    <a href="{{ url_for('bien_modifier_formulaire', bien_id=bien.id) }}">Modifier</a>
+    <form method="post" action="{{ url_for('bien_supprimer', bien_id=bien.id) }}" style="display:inline"
+          onsubmit="return confirm('Supprimer ce bien ?');">
+        <button type="submit">Supprimer</button>
+    </form>
+</p>
+
+<h2>Unités locatives</h2>
+{% if bien.type.value == "immeuble" %}
+<p><a href="{{ url_for('unite_nouvelle_formulaire', bien_id=bien.id) }}">Ajouter une unité</a></p>
+{% endif %}
+
+<table>
+    <thead>
+        <tr>
+            <th>Libellé</th>
+            <th>Étage</th>
+            <th>Surface</th>
+            <th>DPE</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for unite in unites %}
+        <tr>
+            <td>{{ unite.libelle }}</td>
+            <td>{{ unite.etage or "—" }}</td>
+            <td>{{ unite.surface_m2 ~ " m²" if unite.surface_m2 else "—" }}</td>
+            <td>{{ unite.dpe_lettre.value if unite.dpe_lettre else "—" }}</td>
+            <td>
+                <a href="{{ url_for('unite_modifier_formulaire', unite_id=unite.id) }}">Modifier</a>
+                {% if bien.type.value == "immeuble" %}
+                <form method="post" action="{{ url_for('unite_supprimer', unite_id=unite.id) }}" style="display:inline"
+                      onsubmit="return confirm('Supprimer cette unité ?');">
+                    <button type="submit">Supprimer</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

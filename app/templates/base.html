@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titre %}Real Estate Manager{% endblock %}</title>
+    <script src="{{ url_for('static', path='js/htmx.min.js') }}" defer></script>
+    <script src="{{ url_for('static', path='js/alpine.min.js') }}" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+</head>
+<body>
+    <header class="entete">
+        <span class="entete__titre">Real Estate Manager</span>
+        {% if utilisateur %}
+            <nav class="entete__nav">
+                <a href="{{ url_for('biens_liste') }}">Patrimoine</a>
+                <span>{{ utilisateur.email }}</span>
+                <a href="{{ url_for('logout') }}">Déconnexion</a>
+            </nav>
+        {% endif %}
+    </header>
+    <main class="contenu">
+        {% block contenu %}{% endblock %}
+    </main>
+</body>
+</html>

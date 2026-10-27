@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block titre %}Connexion — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<form class="formulaire-connexion" method="post" action="{{ url_for('login_submit') }}">
+    <h1>Connexion</h1>
+    {% if erreur %}
+        <p class="erreur">{{ erreur }}</p>
+    {% endif %}
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required autofocus>
+
+    <label for="password">Mot de passe</label>
+    <input type="password" id="password" name="password" required>
+
+    <button type="submit">Se connecter</button>
+</form>
+{% endblock %}
