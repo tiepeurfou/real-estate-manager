@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block titre %}Importer un document — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1>Importer un compte-rendu de gestion</h1>
+
+{% if erreur %}
+    <p class="erreur">{{ erreur }}</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('document_televerser') }}" enctype="multipart/form-data">
+    <label for="gestionnaire_id">Gestionnaire</label>
+    <select id="gestionnaire_id" name="gestionnaire_id" required>
+        {% for g in gestionnaires %}
+        <option value="{{ g.id }}">{{ g.nom }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="bien_id">Bien</label>
+    <select id="bien_id" name="bien_id" required>
+        {% for b in biens %}
+        <option value="{{ b.id }}">{{ b.libelle }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="periode">Période (mois concerné)</label>
+    <input type="date" id="periode" name="periode" required>
+
+    <label for="fichier">Fichier PDF</label>
+    <input type="file" id="fichier" name="fichier" accept="application/pdf" required>
+
+    <button type="submit">Importer</button>
+</form>
+{% endblock %}

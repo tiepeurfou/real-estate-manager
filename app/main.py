@@ -11,6 +11,7 @@ from app.routers import (
     biens,
     comptes_bancaires,
     depenses,
+    documents,
     gestionnaires,
     locataires,
     mandats,
@@ -45,6 +46,7 @@ app.include_router(occupations.router)
 app.include_router(virements.router)
 app.include_router(depenses.router)
 app.include_router(paiements.router)
+app.include_router(documents.router)
 
 
 @app.exception_handler(HTTPException)

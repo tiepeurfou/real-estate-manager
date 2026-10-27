@@ -69,6 +69,7 @@ L'application écoute en local sur `http://127.0.0.1:8000`. En production, elle 
 - [x] Écran Gestionnaires, comptes bancaires et mandats.
 - [x] Écran Locataires et occupations (colocation, clôture de bail, vacance).
 - [x] Écran Finances (virements, rapprochement assisté, dépenses, grille de paiements).
-- [ ] Ingestion mail (Gmail API) et extraction des comptes-rendus PDF.
+- [x] Écran Documents (import manuel de PDF, stockage, extraction) — adaptateurs par gestionnaire non calibrés faute d'exemple réel de compte-rendu.
+- [ ] Ingestion mail (Gmail API) — réutilisera le pipeline d'import déjà en place.
 - [ ] Tableau de bord.
 - [ ] Déploiement systemd.

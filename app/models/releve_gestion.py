@@ -24,6 +24,7 @@ class ReleveGestion(SQLModel, table=True):
     email_source_id: Optional[str] = None
     hash_fichier: str = Field(unique=True)
     statut_extraction: StatutExtraction = StatutExtraction.NON_TRAITE
+    erreur_extraction_message: Optional[str] = None
 
     gestionnaire: "Gestionnaire" = Relationship(back_populates="releves_gestion")
     bien: "Bien" = Relationship(back_populates="releves_gestion")

@@ -1,8 +1,12 @@
+import shutil
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
+import app.services.releves as releves_module
+from app.config import BASE_DIR
 from app.database import get_session
 from app.main import app
 from app.models import Utilisateur
@@ -57,3 +61,13 @@ def utilisateur_test(engine):
 def client_connecte(client, utilisateur_test):
     client.post("/login", data={"email": "test@exemple.fr", "password": "motdepasse123"})
     return client
+
+
+@pytest.fixture()
+def dossier_documents_temporaire(monkeypatch):
+    """Les tests qui enregistrent un document ne doivent pas écrire dans le
+    vrai data/documents du dépôt : on redirige vers un sous-dossier jetable."""
+    dossier = BASE_DIR / "data" / "documents_test_tmp"
+    monkeypatch.setattr(releves_module, "DOSSIER_DOCUMENTS", dossier)
+    yield dossier
+    shutil.rmtree(dossier, ignore_errors=True)
