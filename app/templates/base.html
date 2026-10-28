@@ -4,27 +4,34 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block titre %}Real Estate Manager{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/pico.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
     <script src="{{ url_for('static', path='js/htmx.min.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/alpine.min.js') }}" defer></script>
-    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
 </head>
 <body>
-    <header class="entete">
-        <span class="entete__titre">Real Estate Manager</span>
-        {% if utilisateur %}
-            <nav class="entete__nav">
-                <a href="{{ url_for('biens_liste') }}">Patrimoine</a>
-                <a href="{{ url_for('gestionnaires_liste') }}">Gestionnaires</a>
-                <a href="{{ url_for('locataires_liste') }}">Locataires</a>
-                <a href="{{ url_for('virements_liste') }}">Finances</a>
-                <a href="{{ url_for('documents_liste') }}">Documents</a>
-                <a href="{{ url_for('ingestion_mail_liste') }}">Boîte mail</a>
-                <span>{{ utilisateur.email }}</span>
-                <a href="{{ url_for('logout') }}">Déconnexion</a>
-            </nav>
-        {% endif %}
+    <header class="container">
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('accueil') }}" class="entete__marque"><strong>Real Estate Manager</strong></a></li>
+            </ul>
+            {% if utilisateur %}
+            <ul>
+                <li><a href="{{ url_for('biens_liste') }}">Patrimoine</a></li>
+                <li><a href="{{ url_for('gestionnaires_liste') }}">Gestionnaires</a></li>
+                <li><a href="{{ url_for('locataires_liste') }}">Locataires</a></li>
+                <li><a href="{{ url_for('virements_liste') }}">Finances</a></li>
+                <li><a href="{{ url_for('documents_liste') }}">Documents</a></li>
+                <li><a href="{{ url_for('ingestion_mail_liste') }}">Boîte mail</a></li>
+            </ul>
+            <ul>
+                <li><small class="secondary">{{ utilisateur.email }}</small></li>
+                <li><a href="{{ url_for('logout') }}" role="button" class="outline secondary">Déconnexion</a></li>
+            </ul>
+            {% endif %}
+        </nav>
     </header>
-    <main class="contenu">
+    <main class="container">
         {% block contenu %}{% endblock %}
     </main>
 </body>

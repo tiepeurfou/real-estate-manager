@@ -1,95 +1,115 @@
-:root {
-    color-scheme: light dark;
-    font-family: system-ui, sans-serif;
+/* Pico CSS fournit la base (typo, couleurs, formulaires, tableaux, nav).
+   Ce fichier ne couvre que les quelques composants propres à l'appli. */
+
+.entete__marque {
+    text-decoration: none;
+    color: var(--pico-h1-color, var(--pico-color));
 }
 
-body {
+/* Les boutons/soumissions Pico sont en largeur 100% par défaut — très bien
+   pour un formulaire principal, mais pas pour les petites actions en ligne
+   (Modifier/Supprimer/Terminer) dans un tableau ou une ligne de détail. */
+td button,
+td [type="submit"],
+form[style*="inline"] button,
+form[style*="inline"] [type="submit"] {
+    width: auto;
+    display: inline-block;
     margin: 0;
 }
 
-.entete {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid #8884;
-}
-
-.entete__nav {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.contenu {
-    padding: 1.5rem;
-}
-
 .formulaire-connexion {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    max-width: 320px;
+    max-width: 24rem;
+    margin: 3rem auto;
 }
 
-.formulaire-connexion .erreur {
-    color: #c0392b;
+.erreur {
+    color: var(--pico-del-color);
+    border: var(--pico-border-width) solid var(--pico-del-color);
+    border-radius: var(--pico-border-radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
 }
+
+/* Tableau de bord */
 
 .synthese {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .carte-chiffre {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding: 1rem;
-    border: 1px solid #8884;
-    border-radius: 0.5rem;
-    min-width: 10rem;
+    padding: 1rem 1.25rem;
+    background: var(--pico-card-background-color);
+    border: var(--pico-border-width) solid var(--pico-card-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: var(--pico-card-box-shadow);
 }
 
 .carte-chiffre--alerte {
-    border-color: #c0392b;
+    border-color: var(--pico-del-color);
 }
 
 .carte-chiffre__valeur {
-    font-size: 1.5rem;
-    font-weight: bold;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 .carte-chiffre__libelle {
-    font-size: 0.85rem;
-    opacity: 0.8;
+    font-size: 0.8rem;
+    color: var(--pico-muted-color);
 }
 
 .tuiles-biens {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .tuile-bien {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1rem;
-    border: 1px solid #8884;
-    border-radius: 0.5rem;
-    min-width: 10rem;
+    gap: 0.35rem;
+    padding: 1rem 1.25rem;
+    background: var(--pico-card-background-color);
+    border: var(--pico-border-width) solid var(--pico-card-border-color);
+    border-radius: var(--pico-border-radius);
+    box-shadow: var(--pico-card-box-shadow);
     text-decoration: none;
-    color: inherit;
+    color: var(--pico-color);
+    transition: box-shadow 0.15s ease;
+}
+
+.tuile-bien:hover {
+    border-color: var(--pico-primary);
 }
 
 .tuile-bien--alerte {
-    border-color: #c0392b;
+    border-color: var(--pico-del-color);
+}
+
+.tuile-bien strong {
+    font-size: 1.05rem;
 }
 
 .alertes {
-    padding-left: 1.2rem;
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.alertes li {
+    padding: 0.6rem 1rem;
+    border-left: 3px solid var(--pico-del-color);
+    background: var(--pico-card-background-color);
+    border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0;
 }
