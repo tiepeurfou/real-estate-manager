@@ -28,7 +28,7 @@
     </div>
 </section>
 
-<h2 class="h5 mb-3">Patrimoine</h2>
+<h2 class="h5 mb-3">Patrimoine locatif</h2>
 <section class="tuiles-biens">
     {% for tuile in donnees.tuiles_biens %}
     <a class="card carte-ombre tuile-bien {{ 'tuile-bien--alerte' if tuile.en_alerte else '' }}" href="{{ url_for('bien_detail', bien_id=tuile.bien_id) }}">
@@ -37,7 +37,7 @@
         {% if tuile.en_alerte %}<span class="badge text-bg-danger align-self-start">Attention requise</span>{% endif %}
     </a>
     {% else %}
-    <p class="text-secondary">Aucun bien enregistré.</p>
+    <p class="text-secondary">Aucun bien locatif enregistré.</p>
     {% endfor %}
 </section>
 
