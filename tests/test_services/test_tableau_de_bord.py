@@ -459,3 +459,70 @@ def test_calculer_pour_bien_inexistant_ne_leve_pas(session):
     assert donnees.bien_id == 999
     assert donnees.loyers_attendus_mois == 0
     assert donnees.depenses_mois == 0
+
+
+def _creer_residence_principale(session, libelle="Ma maison") -> Bien:
+    bien = Bien(
+        type=TypeBien.RESIDENCE_PRINCIPALE,
+        libelle=libelle,
+        adresse_rue="5 rue Test",
+        adresse_code_postal="08000",
+        adresse_ville="Charleville-Mézières",
+    )
+    session.add(bien)
+    session.commit()
+    session.refresh(bien)
+    return bien
+
+
+def test_residence_principale_exclue_du_nombre_de_biens(session):
+    _creer_bien_avec_unites(session, nb_unites=1)
+    _creer_residence_principale(session)
+
+    donnees = calculer(session, AUJOURDHUI)
+
+    assert donnees.nb_biens == 1
+
+
+def test_residence_principale_absente_des_tuiles(session):
+    residence = _creer_residence_principale(session)
+
+    donnees = calculer(session, AUJOURDHUI)
+
+    assert all(t.bien_id != residence.id for t in donnees.tuiles_biens)
+
+
+def test_residence_principale_sans_unite_ne_genere_pas_d_alerte_vacance(session):
+    _creer_residence_principale(session)
+
+    donnees = calculer(session, AUJOURDHUI)
+
+    assert donnees.unites_vacantes == []
+
+
+def test_depenses_residence_principale_exclues_du_total_global(session):
+    residence = _creer_residence_principale(session)
+    session.add(
+        LigneDepense(
+            bien_id=residence.id, categorie="Crédit immobilier", libelle="Crédit", montant=900, date=PERIODE_COURANTE
+        )
+    )
+    session.commit()
+
+    donnees = calculer(session, AUJOURDHUI)
+
+    assert donnees.depenses_mois == 0
+
+
+def test_calculer_pour_bien_fonctionne_pour_une_residence_principale(session):
+    residence = _creer_residence_principale(session)
+    session.add(
+        LigneDepense(
+            bien_id=residence.id, categorie="Crédit immobilier", libelle="Crédit", montant=900, date=PERIODE_COURANTE
+        )
+    )
+    session.commit()
+
+    donnees = calculer_pour_bien(session, residence.id, AUJOURDHUI)
+
+    assert donnees.depenses_mois == 900

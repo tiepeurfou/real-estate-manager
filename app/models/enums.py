@@ -4,6 +4,7 @@ from enum import Enum
 class TypeBien(str, Enum):
     APPARTEMENT_ISOLE = "appartement_isole"
     IMMEUBLE = "immeuble"
+    RESIDENCE_PRINCIPALE = "residence_principale"
 
 
 class DpeLettre(str, Enum):

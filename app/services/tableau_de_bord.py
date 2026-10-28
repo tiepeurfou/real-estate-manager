@@ -14,7 +14,7 @@ from app.models import (
     UniteLocative,
     VirementRecu,
 )
-from app.models.enums import RoleMandat, StatutExtraction, StatutOccupation, StatutPaiement
+from app.models.enums import RoleMandat, StatutExtraction, StatutOccupation, StatutPaiement, TypeBien
 
 
 @dataclass
@@ -128,9 +128,16 @@ def calculer(session: Session, aujourdhui: date | None = None) -> DonneesTableau
     aujourdhui = aujourdhui or date.today()
     periode_courante = date(aujourdhui.year, aujourdhui.month, 1)
 
-    biens = session.exec(select(Bien)).all()
+    # Une résidence principale n'est pas un bien locatif (pas d'unité, jamais
+    # de locataire) : elle est exclue des métriques de patrimoine locatif
+    # (nb_biens, tuiles, taux d'occupation) pour ne pas les fausser, même si
+    # ses propres dépenses restent consultables sur sa page de détail
+    # (calculer_pour_bien, qui ne fait pas cette distinction).
+    tous_les_biens = session.exec(select(Bien)).all()
+    biens_par_id = {b.id: b for b in tous_les_biens}
+    biens = [b for b in tous_les_biens if b.type != TypeBien.RESIDENCE_PRINCIPALE]
+    ids_residences_principales = {b.id for b in tous_les_biens if b.type == TypeBien.RESIDENCE_PRINCIPALE}
     unites = session.exec(select(UniteLocative)).all()
-    biens_par_id = {b.id: b for b in biens}
 
     unites_occupees_ids = {
         o.unite_locative_id for o in session.exec(select(Occupation).where(Occupation.statut == StatutOccupation.ACTIVE)).all()
@@ -140,7 +147,9 @@ def calculer(session: Session, aujourdhui: date | None = None) -> DonneesTableau
     lignes_mois = [l for l in toutes_lignes_paiement if l.periode == periode_courante]
     dernieres_lignes = _dernieres_lignes_par_unite(toutes_lignes_paiement)
 
-    toutes_depenses = session.exec(select(LigneDepense)).all()
+    toutes_depenses = [
+        d for d in session.exec(select(LigneDepense)).all() if d.bien_id not in ids_residences_principales
+    ]
     depenses_mois = [
         d for d in toutes_depenses if d.date.year == periode_courante.year and d.date.month == periode_courante.month
     ]

@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.models import (
     Bien,
+    DepenseRecurrente,
     LigneDepense,
     Locataire,
     MandatGestion,
@@ -29,6 +30,8 @@ def _bien_a_des_donnees_liees(session: Session, bien: Bien) -> bool:
     if session.exec(select(ReleveGestion).where(ReleveGestion.bien_id == bien.id)).first() is not None:
         return True
     if session.exec(select(LigneDepense).where(LigneDepense.bien_id == bien.id)).first() is not None:
+        return True
+    if session.exec(select(DepenseRecurrente).where(DepenseRecurrente.bien_id == bien.id)).first() is not None:
         return True
 
     if unite_ids:
@@ -258,6 +261,8 @@ def unite_nouvelle_formulaire(
         raise HTTPException(status_code=404, detail="Bien introuvable")
     if bien.type == TypeBien.APPARTEMENT_ISOLE:
         raise HTTPException(status_code=409, detail="Un appartement isolé ne peut avoir qu'une seule unité locative.")
+    if bien.type == TypeBien.RESIDENCE_PRINCIPALE:
+        raise HTTPException(status_code=409, detail="Une résidence principale n'a pas d'unité locative.")
 
     return templates.TemplateResponse(
         request,
@@ -291,6 +296,8 @@ def unite_creer(
         raise HTTPException(status_code=404, detail="Bien introuvable")
     if bien.type == TypeBien.APPARTEMENT_ISOLE:
         raise HTTPException(status_code=409, detail="Un appartement isolé ne peut avoir qu'une seule unité locative.")
+    if bien.type == TypeBien.RESIDENCE_PRINCIPALE:
+        raise HTTPException(status_code=409, detail="Une résidence principale n'a pas d'unité locative.")
 
     try:
         unite = UniteLocative(

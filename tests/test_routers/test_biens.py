@@ -113,6 +113,97 @@ def test_detail_bien_inexistant(client_connecte):
     assert client_connecte.get("/biens/999").status_code == 404
 
 
+def test_creation_residence_principale_ne_cree_aucune_unite(client_connecte, engine):
+    client_connecte.post(
+        "/biens",
+        data={
+            "type": "residence_principale",
+            "libelle": "Ma maison",
+            "adresse_rue": "5 rue Test",
+            "adresse_code_postal": "08000",
+            "adresse_ville": "Charleville-Mézières",
+        },
+    )
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        bien = s.exec(select(Bien).where(Bien.libelle == "Ma maison")).first()
+        assert bien is not None
+        unites = s.exec(select(UniteLocative).where(UniteLocative.bien_id == bien.id)).all()
+        assert unites == []
+
+
+def test_detail_residence_principale_sans_section_unites(client_connecte, session):
+    bien = Bien(
+        type=TypeBien.RESIDENCE_PRINCIPALE,
+        libelle="Ma maison",
+        adresse_rue="5 rue Test",
+        adresse_code_postal="08000",
+        adresse_ville="Charleville-Mézières",
+    )
+    session.add(bien)
+    session.commit()
+    session.refresh(bien)
+
+    reponse = client_connecte.get(f"/biens/{bien.id}")
+    assert reponse.status_code == 200
+    assert "Unités locatives" not in reponse.text
+    assert "non locative" in reponse.text
+
+
+def test_ajout_unite_refuse_sur_residence_principale(client_connecte, session):
+    bien = Bien(
+        type=TypeBien.RESIDENCE_PRINCIPALE,
+        libelle="Ma maison",
+        adresse_rue="5 rue Test",
+        adresse_code_postal="08000",
+        adresse_ville="Charleville-Mézières",
+    )
+    session.add(bien)
+    session.commit()
+    session.refresh(bien)
+
+    assert client_connecte.get(f"/biens/{bien.id}/unites/nouvelle").status_code == 409
+    assert (
+        client_connecte.post(
+            f"/biens/{bien.id}/unites",
+            data={"libelle": "x"},
+        ).status_code
+        == 409
+    )
+
+
+def test_suppression_residence_principale_refusee_si_depense_recurrente(client_connecte, session):
+    from app.models import DepenseRecurrente
+    from app.models.enums import FrequenceDepense
+
+    bien = Bien(
+        type=TypeBien.RESIDENCE_PRINCIPALE,
+        libelle="Ma maison",
+        adresse_rue="5 rue Test",
+        adresse_code_postal="08000",
+        adresse_ville="Charleville-Mézières",
+    )
+    session.add(bien)
+    session.commit()
+    session.refresh(bien)
+    session.add(
+        DepenseRecurrente(
+            bien_id=bien.id,
+            categorie="Crédit immobilier",
+            libelle="Crédit résidence principale",
+            montant=900,
+            frequence=FrequenceDepense.MENSUELLE,
+            date_debut=date(2024, 1, 1),
+        )
+    )
+    session.commit()
+
+    reponse = client_connecte.post(f"/biens/{bien.id}/supprimer")
+    assert reponse.status_code == 409
+
+
 def test_detail_bien_affiche_les_finances_du_bien(client_connecte, session):
     from app.models import LigneDepense
 
