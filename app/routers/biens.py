@@ -17,6 +17,7 @@ from app.models import (
 from app.models.enums import DpeLettre, StatutOccupation, TypeBien
 from app.security import get_current_user
 from app.services.formulaires import parser_date_optionnelle, parser_float_optionnel, parser_int_optionnel
+from app.services.tableau_de_bord import calculer_pour_bien
 from app.templating import templates
 
 router = APIRouter(prefix="/biens", tags=["biens"])
@@ -143,6 +144,7 @@ def bien_detail(
     ).all()
 
     occupation_par_unite = _occupation_active_par_unite(session, [u.id for u in unites])
+    finances = calculer_pour_bien(session, bien_id)
 
     return templates.TemplateResponse(
         request,
@@ -152,6 +154,7 @@ def bien_detail(
             "bien": bien,
             "unites": unites,
             "occupation_par_unite": occupation_par_unite,
+            "finances": finances,
         },
     )
 

@@ -54,6 +54,15 @@ class AlerteVirementManquant:
 
 
 @dataclass
+class DonneesFinancesBien:
+    bien_id: int
+    loyers_attendus_mois: float = 0.0
+    loyers_percus_mois: float = 0.0
+    dettes_totales: float = 0.0
+    depenses_mois: float = 0.0
+
+
+@dataclass
 class DonneesTableauDeBord:
     nb_biens: int = 0
     nb_unites: int = 0
@@ -77,6 +86,42 @@ def _dernieres_lignes_par_unite(lignes: list[LignePaiement]) -> dict[int, LigneP
         if actuelle is None or ligne.periode > actuelle.periode:
             dernieres[ligne.unite_locative_id] = ligne
     return dernieres
+
+
+def calculer_pour_bien(session: Session, bien_id: int, aujourdhui: date | None = None) -> DonneesFinancesBien:
+    """Même logique que `calculer()` mais limitée aux unités d'un seul bien —
+    la vision globale du tableau de bord ne dit rien de la rentabilité d'un
+    bien précis, utile quand le patrimoine compte plusieurs immeubles."""
+    aujourdhui = aujourdhui or date.today()
+    periode_courante = date(aujourdhui.year, aujourdhui.month, 1)
+
+    unite_ids = [
+        u.id for u in session.exec(select(UniteLocative).where(UniteLocative.bien_id == bien_id)).all()
+    ]
+
+    lignes_paiement = (
+        session.exec(select(LignePaiement).where(LignePaiement.unite_locative_id.in_(unite_ids))).all()
+        if unite_ids
+        else []
+    )
+    lignes_mois = [l for l in lignes_paiement if l.periode == periode_courante]
+    dernieres_lignes = _dernieres_lignes_par_unite(lignes_paiement)
+
+    condition_depense = LigneDepense.bien_id == bien_id
+    if unite_ids:
+        condition_depense = condition_depense | LigneDepense.unite_locative_id.in_(unite_ids)
+    lignes_depense = session.exec(select(LigneDepense).where(condition_depense)).all()
+    depenses_mois = [
+        d for d in lignes_depense if d.date.year == periode_courante.year and d.date.month == periode_courante.month
+    ]
+
+    return DonneesFinancesBien(
+        bien_id=bien_id,
+        loyers_attendus_mois=sum(l.montant_attendu for l in lignes_mois),
+        loyers_percus_mois=sum(l.montant_percu for l in lignes_mois),
+        dettes_totales=sum(l.dette_cumulee for l in dernieres_lignes.values() if l.dette_cumulee > 0),
+        depenses_mois=sum(d.montant for d in depenses_mois),
+    )
 
 
 def calculer(session: Session, aujourdhui: date | None = None) -> DonneesTableauDeBord:

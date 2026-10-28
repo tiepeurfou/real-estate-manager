@@ -113,6 +113,25 @@ def test_detail_bien_inexistant(client_connecte):
     assert client_connecte.get("/biens/999").status_code == 404
 
 
+def test_detail_bien_affiche_les_finances_du_bien(client_connecte, session):
+    from app.models import LigneDepense
+
+    bien = _creer_bien_immeuble(session)
+    unite = UniteLocative(bien_id=bien.id, libelle="Appt 1")
+    session.add(unite)
+    session.commit()
+    session.refresh(unite)
+    session.add(
+        LigneDepense(bien_id=bien.id, categorie="Taxe foncière", libelle="Taxe", montant=1200, date=date.today())
+    )
+    session.commit()
+
+    reponse = client_connecte.get(f"/biens/{bien.id}")
+    assert reponse.status_code == 200
+    assert "Finances de ce bien" in reponse.text
+    assert "1200" in reponse.text
+
+
 def test_modification_bien(client_connecte, session):
     bien = _creer_bien_immeuble(session)
 

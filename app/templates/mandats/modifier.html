@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block titre %}Modifier le mandat — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1 class="h3 mb-4">Modifier le mandat</h1>
+
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('mandat_modifier', mandat_id=mandat.id) }}">
+            <div class="mb-3">
+                <label for="unite_locative_id" class="form-label">Unité locative</label>
+                <select id="unite_locative_id" name="unite_locative_id" class="form-select" required>
+                    {% for unite in unites %}
+                    {% set bien = biens_par_id.get(unite.bien_id) %}
+                    <option value="{{ unite.id }}" {{ "selected" if mandat.unite_locative_id == unite.id else "" }}>{{ bien.libelle if bien else "?" }} — {{ unite.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="role" class="form-label">Rôle</label>
+                <select id="role" name="role" class="form-select" required>
+                    {% for r in roles %}
+                    <option value="{{ r.value }}" {{ "selected" if mandat.role == r else "" }}>{{ r.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="date_debut" class="form-label">Date de début</label>
+                    <input type="date" class="form-control" id="date_debut" name="date_debut" value="{{ mandat.date_debut }}" required>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label for="date_fin" class="form-label">Date de fin (optionnel)</label>
+                    <input type="date" class="form-control" id="date_fin" name="date_fin" value="{{ mandat.date_fin or '' }}">
+                    <div class="form-text">Laisser vide pour un mandat toujours actif.</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="compte_bancaire_id" class="form-label">Compte de versement (si rôle "gestion")</label>
+                <select id="compte_bancaire_id" name="compte_bancaire_id" class="form-select">
+                    <option value="">—</option>
+                    {% for compte in comptes %}
+                    <option value="{{ compte.id }}" {{ "selected" if mandat.compte_bancaire_id == compte.id else "" }}>{{ compte.libelle }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Le compte sur lequel ce gestionnaire vire les loyers de cette unité — propre à ce mandat, pas au gestionnaire.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

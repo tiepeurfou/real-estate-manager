@@ -20,7 +20,7 @@ from app.models.enums import (
     StatutPaiement,
     TypeBien,
 )
-from app.services.tableau_de_bord import calculer
+from app.services.tableau_de_bord import calculer, calculer_pour_bien
 
 AUJOURDHUI = date(2024, 9, 15)
 PERIODE_COURANTE = date(2024, 9, 1)
@@ -354,3 +354,108 @@ def test_tuile_bien_sans_alerte_si_tout_va_bien(session):
 
     assert donnees.tuiles_biens[0].en_alerte is False
     assert donnees.tuiles_biens[0].nb_occupees == 1
+
+
+def test_calculer_pour_bien_sans_donnees(session):
+    bien, unites = _creer_bien_avec_unites(session, nb_unites=1)
+
+    donnees = calculer_pour_bien(session, bien.id, AUJOURDHUI)
+
+    assert donnees.bien_id == bien.id
+    assert donnees.loyers_attendus_mois == 0
+    assert donnees.loyers_percus_mois == 0
+    assert donnees.dettes_totales == 0
+    assert donnees.depenses_mois == 0
+
+
+def test_calculer_pour_bien_ignore_les_autres_biens(session):
+    bien1, unites1 = _creer_bien_avec_unites(session, nb_unites=1, libelle="Immeuble Sedan")
+    bien2, unites2 = _creer_bien_avec_unites(session, nb_unites=1, libelle="Immeuble Charleville")
+    gestionnaire = Gestionnaire(nom="Locagestion")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+    releve1 = _creer_releve(session, gestionnaire.id, bien1.id)
+    releve2 = _creer_releve(session, gestionnaire.id, bien2.id)
+
+    session.add(
+        LignePaiement(
+            releve_gestion_id=releve1.id,
+            unite_locative_id=unites1[0].id,
+            periode=PERIODE_COURANTE,
+            montant_attendu=500,
+            montant_percu=500,
+            statut=StatutPaiement.PAYE,
+        )
+    )
+    session.add(
+        LignePaiement(
+            releve_gestion_id=releve2.id,
+            unite_locative_id=unites2[0].id,
+            periode=PERIODE_COURANTE,
+            montant_attendu=700,
+            montant_percu=700,
+            statut=StatutPaiement.PAYE,
+        )
+    )
+    session.commit()
+
+    donnees_bien1 = calculer_pour_bien(session, bien1.id, AUJOURDHUI)
+
+    assert donnees_bien1.loyers_attendus_mois == 500
+    assert donnees_bien1.loyers_percus_mois == 500
+
+
+def test_calculer_pour_bien_dettes_et_impayes(session):
+    bien, unites = _creer_bien_avec_unites(session, nb_unites=1)
+    gestionnaire = Gestionnaire(nom="Locagestion")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+    releve = _creer_releve(session, gestionnaire.id, bien.id)
+
+    session.add(
+        LignePaiement(
+            releve_gestion_id=releve.id,
+            unite_locative_id=unites[0].id,
+            periode=PERIODE_COURANTE,
+            montant_attendu=500,
+            montant_percu=200,
+            statut=StatutPaiement.PARTIEL,
+            dette_cumulee=300,
+        )
+    )
+    session.commit()
+
+    donnees = calculer_pour_bien(session, bien.id, AUJOURDHUI)
+
+    assert donnees.dettes_totales == 300
+
+
+def test_calculer_pour_bien_depenses_rattachees_au_bien_et_a_une_unite(session):
+    bien, unites = _creer_bien_avec_unites(session, nb_unites=1)
+
+    session.add(
+        LigneDepense(bien_id=bien.id, categorie="Taxe foncière", libelle="Taxe", montant=1200, date=PERIODE_COURANTE)
+    )
+    session.add(
+        LigneDepense(
+            unite_locative_id=unites[0].id, categorie="Travaux", libelle="Plomberie", montant=300, date=PERIODE_COURANTE
+        )
+    )
+    session.add(
+        LigneDepense(bien_id=bien.id, categorie="Taxe foncière", libelle="Vieille taxe", montant=999, date=PERIODE_PRECEDENTE)
+    )
+    session.commit()
+
+    donnees = calculer_pour_bien(session, bien.id, AUJOURDHUI)
+
+    assert donnees.depenses_mois == 1500
+
+
+def test_calculer_pour_bien_inexistant_ne_leve_pas(session):
+    donnees = calculer_pour_bien(session, 999, AUJOURDHUI)
+
+    assert donnees.bien_id == 999
+    assert donnees.loyers_attendus_mois == 0
+    assert donnees.depenses_mois == 0

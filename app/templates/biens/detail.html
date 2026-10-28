@@ -21,6 +21,22 @@
 
 {% if bien.notes %}<p class="text-secondary">{{ bien.notes }}</p>{% endif %}
 
+<h2 class="h5 mb-3">Finances de ce bien — ce mois</h2>
+<section class="synthese mb-4">
+    <div class="card carte-ombre carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(finances.loyers_percus_mois) }} € / {{ "%.0f"|format(finances.loyers_attendus_mois) }} €</span>
+        <span class="carte-chiffre__libelle">loyers perçus ce mois</span>
+    </div>
+    <div class="card carte-ombre carte-chiffre {{ 'carte-chiffre--alerte' if finances.dettes_totales > 0 else '' }}">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(finances.dettes_totales) }} €</span>
+        <span class="carte-chiffre__libelle">dettes locataires</span>
+    </div>
+    <div class="card carte-ombre carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(finances.depenses_mois) }} €</span>
+        <span class="carte-chiffre__libelle">dépenses ce mois</span>
+    </div>
+</section>
+
 <div class="page-titre">
     <h2 class="h5 mb-0">Unités locatives</h2>
     {% if bien.type.value == "immeuble" %}
