@@ -3,13 +3,89 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Occupation, OccupationLocataire, UniteLocative, Utilisateur
+from app.models import Locataire, Occupation, OccupationLocataire, UniteLocative, Utilisateur
 from app.models.enums import StatutOccupation
 from app.security import get_current_user
-from app.services.formulaires import parser_date_optionnelle
+from app.services.formulaires import parser_date_optionnelle, parser_float_optionnel
 from app.templating import templates
 
 router = APIRouter(prefix="/occupations", tags=["occupations"])
+
+
+@router.get("/{occupation_id}/modifier", name="occupation_modifier_formulaire")
+def occupation_modifier_formulaire(
+    request: Request,
+    occupation_id: int,
+    session: Session = Depends(get_session),
+    utilisateur: Utilisateur = Depends(get_current_user),
+):
+    occupation = session.get(Occupation, occupation_id)
+    if occupation is None:
+        raise HTTPException(status_code=404, detail="Occupation introuvable")
+
+    locataires = _locataires_de(session, occupation_id)
+
+    return templates.TemplateResponse(
+        request,
+        "occupations/modifier.html",
+        {"utilisateur": utilisateur, "occupation": occupation, "locataires": locataires, "erreur": None},
+    )
+
+
+@router.post("/{occupation_id}/modifier", name="occupation_modifier")
+def occupation_modifier(
+    request: Request,
+    occupation_id: int,
+    date_entree: str = Form(...),
+    loyer_mensuel_hc: str = Form(...),
+    charges_mensuelles: str = Form("0"),
+    depot_garantie: str = Form(""),
+    session: Session = Depends(get_session),
+    utilisateur: Utilisateur = Depends(get_current_user),
+):
+    occupation = session.get(Occupation, occupation_id)
+    if occupation is None:
+        raise HTTPException(status_code=404, detail="Occupation introuvable")
+
+    try:
+        date_entree_parsee = parser_date_optionnelle(date_entree)
+        if date_entree_parsee is None:
+            raise ValueError("la date d'entrée est obligatoire")
+        if occupation.date_sortie is not None and date_entree_parsee > occupation.date_sortie:
+            raise ValueError("la date d'entrée ne peut pas être après la date de sortie")
+        loyer_parse = float(loyer_mensuel_hc)
+        charges_parsees = parser_float_optionnel(charges_mensuelles) or 0
+        depot_parse = parser_float_optionnel(depot_garantie)
+    except ValueError as erreur:
+        locataires = _locataires_de(session, occupation_id)
+        return templates.TemplateResponse(
+            request,
+            "occupations/modifier.html",
+            {
+                "utilisateur": utilisateur,
+                "occupation": occupation,
+                "locataires": locataires,
+                "erreur": f"Données invalides : {erreur}",
+            },
+            status_code=400,
+        )
+
+    occupation.date_entree = date_entree_parsee
+    occupation.loyer_mensuel_hc = loyer_parse
+    occupation.charges_mensuelles = charges_parsees
+    occupation.depot_garantie = depot_parse
+    session.add(occupation)
+    session.commit()
+
+    return RedirectResponse(
+        url=request.url_for("bien_detail", bien_id=_bien_id_de_l_unite(session, occupation.unite_locative_id)),
+        status_code=303,
+    )
+
+
+def _locataires_de(session: Session, occupation_id: int) -> list[Locataire]:
+    liens = session.exec(select(OccupationLocataire).where(OccupationLocataire.occupation_id == occupation_id)).all()
+    return [session.get(Locataire, lien.locataire_id) for lien in liens]
 
 
 @router.get("/{occupation_id}/cloturer", name="occupation_cloturer_formulaire")

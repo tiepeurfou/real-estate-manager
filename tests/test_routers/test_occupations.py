@@ -242,3 +242,113 @@ def test_suppression_occupation(client_connecte, session, engine):
 
 def test_suppression_occupation_inexistante(client_connecte):
     assert client_connecte.post("/occupations/999/supprimer").status_code == 404
+
+
+def test_formulaire_modification_occupation(client_connecte, session):
+    _, unite = _creer_bien_avec_unite(session)
+    locataire = _creer_locataire(session)
+    occupation = Occupation(
+        unite_locative_id=unite.id, date_entree=date(2024, 1, 1), loyer_mensuel_hc=500, statut=StatutOccupation.ACTIVE
+    )
+    session.add(occupation)
+    session.commit()
+    session.refresh(occupation)
+    session.add(OccupationLocataire(occupation_id=occupation.id, locataire_id=locataire.id))
+    session.commit()
+
+    reponse = client_connecte.get(f"/occupations/{occupation.id}/modifier")
+    assert reponse.status_code == 200
+    assert "Dupont" in reponse.text
+
+
+def test_formulaire_modification_occupation_inexistante(client_connecte):
+    assert client_connecte.get("/occupations/999/modifier").status_code == 404
+
+
+def test_modification_occupation_revision_de_loyer(client_connecte, session, engine):
+    """Cas d'usage principal : la révision annuelle du loyer."""
+    _, unite = _creer_bien_avec_unite(session)
+    occupation = Occupation(
+        unite_locative_id=unite.id,
+        date_entree=date(2024, 1, 1),
+        loyer_mensuel_hc=500,
+        charges_mensuelles=50,
+        statut=StatutOccupation.ACTIVE,
+    )
+    session.add(occupation)
+    session.commit()
+    session.refresh(occupation)
+
+    reponse = client_connecte.post(
+        f"/occupations/{occupation.id}/modifier",
+        data={"date_entree": "2024-01-01", "loyer_mensuel_hc": "515", "charges_mensuelles": "55"},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session
+
+    with Session(engine) as s:
+        occupation_maj = s.get(Occupation, occupation.id)
+        assert occupation_maj.loyer_mensuel_hc == 515
+        assert occupation_maj.charges_mensuelles == 55
+
+
+def test_modification_occupation_corrige_la_date_d_entree(client_connecte, session, engine):
+    _, unite = _creer_bien_avec_unite(session)
+    occupation = Occupation(
+        unite_locative_id=unite.id, date_entree=date(2024, 1, 1), loyer_mensuel_hc=500, statut=StatutOccupation.ACTIVE
+    )
+    session.add(occupation)
+    session.commit()
+    session.refresh(occupation)
+
+    client_connecte.post(
+        f"/occupations/{occupation.id}/modifier",
+        data={"date_entree": "2024-02-01", "loyer_mensuel_hc": "500"},
+    )
+
+    from sqlmodel import Session
+
+    with Session(engine) as s:
+        assert s.get(Occupation, occupation.id).date_entree == date(2024, 2, 1)
+
+
+def test_modification_occupation_terminee_reste_coherente_avec_la_date_de_sortie(client_connecte, session):
+    _, unite = _creer_bien_avec_unite(session)
+    occupation = Occupation(
+        unite_locative_id=unite.id,
+        date_entree=date(2024, 1, 1),
+        date_sortie=date(2024, 6, 30),
+        loyer_mensuel_hc=500,
+        statut=StatutOccupation.TERMINEE,
+    )
+    session.add(occupation)
+    session.commit()
+    session.refresh(occupation)
+
+    reponse = client_connecte.post(
+        f"/occupations/{occupation.id}/modifier",
+        data={"date_entree": "2024-07-01", "loyer_mensuel_hc": "500"},
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_occupation_montant_invalide(client_connecte, session):
+    _, unite = _creer_bien_avec_unite(session)
+    occupation = Occupation(
+        unite_locative_id=unite.id, date_entree=date(2024, 1, 1), loyer_mensuel_hc=500, statut=StatutOccupation.ACTIVE
+    )
+    session.add(occupation)
+    session.commit()
+    session.refresh(occupation)
+
+    reponse = client_connecte.post(
+        f"/occupations/{occupation.id}/modifier",
+        data={"date_entree": "2024-01-01", "loyer_mensuel_hc": "abc"},
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_occupation_inexistante(client_connecte):
+    assert client_connecte.post("/occupations/999/modifier", data={"date_entree": "2024-01-01", "loyer_mensuel_hc": "500"}).status_code == 404

@@ -52,6 +52,7 @@
                     <td>
                         {% if occ %}
                             <span class="badge text-bg-success">{{ occ.locataires | map(attribute="nom") | join(", ") }}</span>
+                            <a href="{{ url_for('occupation_modifier_formulaire', occupation_id=occ.occupation.id) }}" class="ms-2 small">Modifier</a>
                             <a href="{{ url_for('occupation_cloturer_formulaire', occupation_id=occ.occupation.id) }}" class="ms-2 small">Clôturer</a>
                         {% else %}
                             <span class="badge text-bg-secondary">Vacant</span>

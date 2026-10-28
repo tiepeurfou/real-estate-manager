@@ -28,7 +28,7 @@
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
-                <tr><th>Bien</th><th>Unité</th><th>Entrée</th><th>Sortie</th><th>Statut</th></tr>
+                <tr><th>Bien</th><th>Unité</th><th>Entrée</th><th>Sortie</th><th>Statut</th><th></th></tr>
             </thead>
             <tbody>
                 {% for occupation in occupations %}
@@ -40,9 +40,10 @@
                     <td>{{ occupation.date_entree }}</td>
                     <td>{{ occupation.date_sortie or "—" }}</td>
                     <td><span class="badge {{ 'text-bg-success' if occupation.statut.value == 'active' else 'text-bg-secondary' }}">{{ occupation.statut.value }}</span></td>
+                    <td><a href="{{ url_for('occupation_modifier_formulaire', occupation_id=occupation.id) }}" class="btn btn-sm btn-outline-secondary">Modifier</a></td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-secondary text-center py-4">Aucune occupation.</td></tr>
+                <tr><td colspan="6" class="text-secondary text-center py-4">Aucune occupation.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

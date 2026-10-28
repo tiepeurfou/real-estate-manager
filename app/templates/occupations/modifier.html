@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block titre %}Modifier l'occupation — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1 class="h3 mb-4">Modifier l'occupation</h1>
+
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
+
+        <p class="text-secondary small">
+            Locataire(s) : {{ locataires | map(attribute="nom") | join(", ") }}
+            (la liste des locataires n'est pas modifiable ici — clôturez le bail puis attribuez à nouveau l'unité pour changer de locataire)
+        </p>
+
+        <form method="post" action="{{ url_for('occupation_modifier', occupation_id=occupation.id) }}">
+            <div class="mb-3">
+                <label for="date_entree" class="form-label">Date d'entrée</label>
+                <input type="date" class="form-control" id="date_entree" name="date_entree" value="{{ occupation.date_entree }}" required>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="loyer_mensuel_hc" class="form-label">Loyer mensuel hors charges</label>
+                    <input type="number" step="0.01" class="form-control" id="loyer_mensuel_hc" name="loyer_mensuel_hc" value="{{ occupation.loyer_mensuel_hc }}" required>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label for="charges_mensuelles" class="form-label">Charges mensuelles</label>
+                    <input type="number" step="0.01" class="form-control" id="charges_mensuelles" name="charges_mensuelles" value="{{ occupation.charges_mensuelles }}">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="depot_garantie" class="form-label">Dépôt de garantie</label>
+                <input type="number" step="0.01" class="form-control" id="depot_garantie" name="depot_garantie" value="{{ occupation.depot_garantie if occupation.depot_garantie is not none else '' }}">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
