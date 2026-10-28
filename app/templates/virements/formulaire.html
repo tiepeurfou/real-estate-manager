@@ -3,42 +3,59 @@
 {% block titre %}Déclarer un virement reçu — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Déclarer un virement reçu</h1>
+<h1 class="h3 mb-4">Déclarer un virement reçu</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('virement_creer') }}" x-data="{ comptesParGestionnaire: {{ comptes_par_gestionnaire_json | safe }} }">
-    <label for="gestionnaire_id">Gestionnaire</label>
-    <select id="gestionnaire_id" name="gestionnaire_id" required
-            x-on:change="$refs.compte.value = comptesParGestionnaire[$event.target.value] || ''">
-        <option value="">—</option>
-        {% for g in gestionnaires %}
-        <option value="{{ g.id }}">{{ g.nom }}</option>
-        {% endfor %}
-    </select>
+        <form method="post" action="{{ url_for('virement_creer') }}" x-data="{ comptesParGestionnaire: {{ comptes_par_gestionnaire_json | safe }} }">
+            <div class="mb-3">
+                <label for="gestionnaire_id" class="form-label">Gestionnaire</label>
+                <select id="gestionnaire_id" name="gestionnaire_id" class="form-select" required
+                        x-on:change="$refs.compte.value = comptesParGestionnaire[$event.target.value] || ''">
+                    <option value="">—</option>
+                    {% for g in gestionnaires %}
+                    <option value="{{ g.id }}">{{ g.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-    <label for="compte_bancaire_id">Compte bancaire</label>
-    <select id="compte_bancaire_id" name="compte_bancaire_id" x-ref="compte" required>
-        <option value="">—</option>
-        {% for c in comptes %}
-        <option value="{{ c.id }}">{{ c.libelle }}</option>
-        {% endfor %}
-    </select>
+            <div class="mb-3">
+                <label for="compte_bancaire_id" class="form-label">Compte bancaire</label>
+                <select id="compte_bancaire_id" name="compte_bancaire_id" class="form-select" x-ref="compte" required>
+                    <option value="">—</option>
+                    {% for c in comptes %}
+                    <option value="{{ c.id }}">{{ c.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-    <label for="montant">Montant</label>
-    <input type="number" step="0.01" id="montant" name="montant" required>
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="montant" class="form-label">Montant</label>
+                    <input type="number" step="0.01" class="form-control" id="montant" name="montant" required>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label for="date_reception" class="form-label">Date de réception</label>
+                    <input type="date" class="form-control" id="date_reception" name="date_reception" required>
+                </div>
+            </div>
 
-    <label for="date_reception">Date de réception</label>
-    <input type="date" id="date_reception" name="date_reception" required>
+            <div class="mb-3">
+                <label for="periode_couverte" class="form-label">Période couverte (optionnel)</label>
+                <input type="date" class="form-control" id="periode_couverte" name="periode_couverte">
+            </div>
 
-    <label for="periode_couverte">Période couverte (optionnel)</label>
-    <input type="date" id="periode_couverte" name="periode_couverte">
+            <div class="mb-4">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+            </div>
 
-    <label for="notes">Notes</label>
-    <textarea id="notes" name="notes"></textarea>
-
-    <button type="submit">Enregistrer</button>
-</form>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

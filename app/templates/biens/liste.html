@@ -3,27 +3,33 @@
 {% block titre %}Patrimoine — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Patrimoine</h1>
-<p><a href="{{ url_for('bien_nouveau_formulaire') }}">Ajouter un bien</a></p>
+<div class="page-titre">
+    <h1 class="h3 mb-0">Patrimoine</h1>
+    <a href="{{ url_for('bien_nouveau_formulaire') }}" class="btn btn-primary">+ Ajouter un bien</a>
+</div>
 
-<table>
-    <thead>
-        <tr>
-            <th>Libellé</th>
-            <th>Type</th>
-            <th>Ville</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for bien in biens %}
-        <tr>
-            <td><a href="{{ url_for('bien_detail', bien_id=bien.id) }}">{{ bien.libelle }}</a></td>
-            <td>{{ bien.type.value }}</td>
-            <td>{{ bien.adresse_ville }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="3">Aucun bien enregistré.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Libellé</th>
+                    <th>Type</th>
+                    <th>Ville</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bien in biens %}
+                <tr>
+                    <td><a href="{{ url_for('bien_detail', bien_id=bien.id) }}" class="fw-semibold">{{ bien.libelle }}</a></td>
+                    <td><span class="badge text-bg-light border">{{ bien.type.value }}</span></td>
+                    <td>{{ bien.adresse_ville }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-secondary text-center py-4">Aucun bien enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

@@ -3,15 +3,21 @@
 {% block titre %}Clôturer le bail — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Clôturer le bail</h1>
+<h1 class="h3 mb-4">Clôturer le bail</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('occupation_cloturer', occupation_id=occupation.id) }}">
-    <label for="date_sortie">Date de sortie</label>
-    <input type="date" id="date_sortie" name="date_sortie" required>
-    <button type="submit">Confirmer</button>
-</form>
+        <form method="post" action="{{ url_for('occupation_cloturer', occupation_id=occupation.id) }}">
+            <div class="mb-4">
+                <label for="date_sortie" class="form-label">Date de sortie</label>
+                <input type="date" class="form-control" id="date_sortie" name="date_sortie" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Confirmer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

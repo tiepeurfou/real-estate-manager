@@ -49,5 +49,5 @@ def test_tableau_de_bord_affiche_les_biens_et_alertes(client_connecte, session):
     reponse = client_connecte.get("/")
     assert reponse.status_code == 200
     assert "Immeuble Sedan" in reponse.text
-    assert "Unité vacante" in reponse.text
+    assert "Vacant" in reponse.text
     assert "Appt 2" in reponse.text

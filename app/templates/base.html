@@ -1,37 +1,42 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-bs-theme="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block titre %}Real Estate Manager{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='css/pico.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
     <script src="{{ url_for('static', path='js/htmx.min.js') }}" defer></script>
     <script src="{{ url_for('static', path='js/alpine.min.js') }}" defer></script>
 </head>
-<body>
-    <header class="container">
-        <nav>
-            <ul>
-                <li><a href="{{ url_for('accueil') }}" class="entete__marque"><strong>Real Estate Manager</strong></a></li>
-            </ul>
-            {% if utilisateur %}
-            <ul>
-                <li><a href="{{ url_for('biens_liste') }}">Patrimoine</a></li>
-                <li><a href="{{ url_for('gestionnaires_liste') }}">Gestionnaires</a></li>
-                <li><a href="{{ url_for('locataires_liste') }}">Locataires</a></li>
-                <li><a href="{{ url_for('virements_liste') }}">Finances</a></li>
-                <li><a href="{{ url_for('documents_liste') }}">Documents</a></li>
-                <li><a href="{{ url_for('ingestion_mail_liste') }}">Boîte mail</a></li>
-            </ul>
-            <ul>
-                <li><small class="secondary">{{ utilisateur.email }}</small></li>
-                <li><a href="{{ url_for('logout') }}" role="button" class="outline secondary">Déconnexion</a></li>
-            </ul>
-            {% endif %}
-        </nav>
-    </header>
-    <main class="container">
+<body class="bg-body-tertiary">
+    {% if utilisateur %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-brand sticky-top shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-semibold" href="{{ url_for('accueil') }}">
+                <span class="brand-mark">REM</span> Real Estate Manager
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav-principale" aria-label="Basculer la navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav-principale">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('biens_liste') }}">Patrimoine</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('gestionnaires_liste') }}">Gestionnaires</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('locataires_liste') }}">Locataires</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('virements_liste') }}">Finances</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('documents_liste') }}">Documents</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('ingestion_mail_liste') }}">Boîte mail</a></li>
+                </ul>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-white-50 small d-none d-lg-inline">{{ utilisateur.email }}</span>
+                    <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Déconnexion</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    <main class="container pb-5">
         {% block contenu %}{% endblock %}
     </main>
 </body>

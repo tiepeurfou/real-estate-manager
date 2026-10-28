@@ -1,41 +1,67 @@
-/* Pico CSS fournit la base (typo, couleurs, formulaires, tableaux, nav).
-   Ce fichier ne couvre que les quelques composants propres à l'appli. */
+/* Bootstrap fournit la base ; ce fichier ajoute l'identité visuelle et les
+   quelques composants propres à l'appli (cartes du tableau de bord, badges
+   de statut, tuiles biens, alertes de triage). */
 
-.entete__marque {
+:root {
+    --rem-brand: #123d45;
+    --rem-brand-dark: #0b2a30;
+    --rem-accent: #c9972c;
+}
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Navbar */
+
+.bg-brand {
+    background: linear-gradient(135deg, var(--rem-brand) 0%, var(--rem-brand-dark) 100%);
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-right: 0.4rem;
+    border-radius: 0.4rem;
+    background: var(--rem-accent);
+    color: var(--rem-brand-dark);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.navbar .nav-link {
+    font-weight: 500;
+}
+
+.navbar .nav-link.active,
+.navbar .nav-link:hover {
+    color: #fff !important;
+}
+
+/* Cartes génériques */
+
+.carte-ombre {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+a.carte-ombre:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
     text-decoration: none;
-    color: var(--pico-h1-color, var(--pico-color));
-}
-
-/* Les boutons/soumissions Pico sont en largeur 100% par défaut — très bien
-   pour un formulaire principal, mais pas pour les petites actions en ligne
-   (Modifier/Supprimer/Terminer) dans un tableau ou une ligne de détail. */
-td button,
-td [type="submit"],
-form[style*="inline"] button,
-form[style*="inline"] [type="submit"] {
-    width: auto;
-    display: inline-block;
-    margin: 0;
-}
-
-.formulaire-connexion {
-    max-width: 24rem;
-    margin: 3rem auto;
-}
-
-.erreur {
-    color: var(--pico-del-color);
-    border: var(--pico-border-width) solid var(--pico-del-color);
-    border-radius: var(--pico-border-radius);
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
 }
 
 /* Tableau de bord */
 
 .synthese {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -43,32 +69,32 @@ form[style*="inline"] [type="submit"] {
 .carte-chiffre {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1rem 1.25rem;
-    background: var(--pico-card-background-color);
-    border: var(--pico-border-width) solid var(--pico-card-border-color);
-    border-radius: var(--pico-border-radius);
-    box-shadow: var(--pico-card-box-shadow);
+    gap: 0.15rem;
+    padding: 1.1rem 1.3rem;
+    background: #fff;
 }
 
 .carte-chiffre--alerte {
-    border-color: var(--pico-del-color);
+    border-left: 4px solid var(--bs-danger);
 }
 
 .carte-chiffre__valeur {
-    font-size: 1.75rem;
+    font-size: 1.85rem;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.15;
+    color: var(--rem-brand);
 }
 
 .carte-chiffre__libelle {
-    font-size: 0.8rem;
-    color: var(--pico-muted-color);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--bs-secondary-color);
 }
 
 .tuiles-biens {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -76,40 +102,59 @@ form[style*="inline"] [type="submit"] {
 .tuile-bien {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    padding: 1rem 1.25rem;
-    background: var(--pico-card-background-color);
-    border: var(--pico-border-width) solid var(--pico-card-border-color);
-    border-radius: var(--pico-border-radius);
-    box-shadow: var(--pico-card-box-shadow);
+    gap: 0.4rem;
+    padding: 1.1rem 1.3rem;
+    background: #fff;
     text-decoration: none;
-    color: var(--pico-color);
-    transition: box-shadow 0.15s ease;
-}
-
-.tuile-bien:hover {
-    border-color: var(--pico-primary);
+    color: var(--bs-body-color);
 }
 
 .tuile-bien--alerte {
-    border-color: var(--pico-del-color);
+    border-left: 4px solid var(--bs-danger);
 }
 
 .tuile-bien strong {
     font-size: 1.05rem;
+    color: var(--rem-brand);
 }
 
 .alertes {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
 .alertes li {
-    padding: 0.6rem 1rem;
-    border-left: 3px solid var(--pico-del-color);
-    background: var(--pico-card-background-color);
-    border-radius: 0 var(--pico-border-radius) var(--pico-border-radius) 0;
+    padding: 0.65rem 1rem;
+    border-left: 4px solid var(--bs-warning);
+    background: #fff;
+    border-radius: 0 0.5rem 0.5rem 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Formulaires */
+
+.carte-formulaire {
+    max-width: 32rem;
+}
+
+.page-titre {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Login */
+
+.page-connexion {
+    min-height: calc(100vh - 2rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

@@ -3,63 +3,67 @@
 {% block titre %}Ingestion mail — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Triage de la boîte mail</h1>
-<p>
+<h1 class="h3 mb-2">Triage de la boîte mail</h1>
+<p class="text-secondary mb-4">
     La boîte dédiée reçoit tout le courrier transféré depuis la boîte personnelle : le tri se fait ici
     manuellement, document par document — aucun filtrage automatique par expéditeur.
 </p>
 
 {% if not configure %}
-    <p class="erreur">
+    <div class="alert alert-warning">
         Boîte mail non configurée : renseignez GMAIL_IMAP_ADRESSE et GMAIL_IMAP_MOT_DE_PASSE dans le fichier .env
         (voir CLAUDE.md).
-    </p>
+    </div>
 {% elif erreur %}
-    <p class="erreur">{{ erreur }}</p>
+    <div class="alert alert-danger">{{ erreur }}</div>
 {% else %}
-    <table>
-        <thead>
-            <tr><th>Reçu le</th><th>Expéditeur</th><th>Objet</th><th>Pièce jointe</th><th>Importer vers</th><th></th></tr>
-        </thead>
-        <tbody>
-            {% for candidat in candidats %}
-            <tr>
-                <td>{{ candidat.date.strftime("%d/%m/%Y") }}</td>
-                <td>{{ candidat.expediteur }}</td>
-                <td>{{ candidat.objet }}</td>
-                <td>{{ candidat.nom_piece_jointe }}</td>
-                <td>
-                    <form method="post" action="{{ url_for('ingestion_mail_importer') }}" class="formulaire-candidat">
-                        <input type="hidden" name="message_uid" value="{{ candidat.message_uid }}">
-                        <input type="hidden" name="nom_piece_jointe" value="{{ candidat.nom_piece_jointe }}">
-                        <select name="gestionnaire_id" required>
-                            <option value="">Gestionnaire</option>
-                            {% for g in gestionnaires %}
-                            <option value="{{ g.id }}">{{ g.nom }}</option>
-                            {% endfor %}
-                        </select>
-                        <select name="bien_id" required>
-                            <option value="">Bien</option>
-                            {% for b in biens %}
-                            <option value="{{ b.id }}">{{ b.libelle }}</option>
-                            {% endfor %}
-                        </select>
-                        <input type="date" name="periode" required>
-                        <button type="submit">Importer</button>
-                    </form>
-                </td>
-                <td>
-                    <form method="post" action="{{ url_for('ingestion_mail_ignorer') }}">
-                        <input type="hidden" name="message_uid" value="{{ candidat.message_uid }}">
-                        <input type="hidden" name="nom_piece_jointe" value="{{ candidat.nom_piece_jointe }}">
-                        <button type="submit">Ignorer</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6">Aucun nouveau document à trier.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card carte-ombre">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Reçu le</th><th>Expéditeur</th><th>Objet</th><th>Pièce jointe</th><th>Importer vers</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for candidat in candidats %}
+                    <tr>
+                        <td>{{ candidat.date.strftime("%d/%m/%Y") }}</td>
+                        <td>{{ candidat.expediteur }}</td>
+                        <td>{{ candidat.objet }}</td>
+                        <td><span class="badge text-bg-light border">{{ candidat.nom_piece_jointe }}</span></td>
+                        <td>
+                            <form method="post" action="{{ url_for('ingestion_mail_importer') }}" class="d-flex flex-wrap gap-1">
+                                <input type="hidden" name="message_uid" value="{{ candidat.message_uid }}">
+                                <input type="hidden" name="nom_piece_jointe" value="{{ candidat.nom_piece_jointe }}">
+                                <select name="gestionnaire_id" class="form-select form-select-sm" style="width: auto;" required>
+                                    <option value="">Gestionnaire</option>
+                                    {% for g in gestionnaires %}
+                                    <option value="{{ g.id }}">{{ g.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="bien_id" class="form-select form-select-sm" style="width: auto;" required>
+                                    <option value="">Bien</option>
+                                    {% for b in biens %}
+                                    <option value="{{ b.id }}">{{ b.libelle }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="date" name="periode" class="form-control form-control-sm" style="width: auto;" required>
+                                <button type="submit" class="btn btn-sm btn-primary">Importer</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="{{ url_for('ingestion_mail_ignorer') }}">
+                                <input type="hidden" name="message_uid" value="{{ candidat.message_uid }}">
+                                <input type="hidden" name="nom_piece_jointe" value="{{ candidat.nom_piece_jointe }}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Ignorer</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-secondary text-center py-4">Aucun nouveau document à trier.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% endif %}
 {% endblock %}

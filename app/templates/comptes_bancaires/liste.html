@@ -3,31 +3,40 @@
 {% block titre %}Comptes bancaires — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('gestionnaires_liste') }}">← Gestionnaires</a></p>
-<h1>Comptes bancaires</h1>
-<p><a href="{{ url_for('compte_bancaire_nouveau_formulaire') }}">Ajouter un compte bancaire</a></p>
+<p><a href="{{ url_for('gestionnaires_liste') }}" class="text-decoration-none">&larr; Gestionnaires</a></p>
 
-<table>
-    <thead>
-        <tr><th>Libellé</th><th>Banque</th><th>IBAN</th><th></th></tr>
-    </thead>
-    <tbody>
-        {% for compte in comptes %}
-        <tr>
-            <td>{{ compte.libelle }}</td>
-            <td>{{ compte.banque.value }}</td>
-            <td>{{ compte.iban or "—" }}</td>
-            <td>
-                <a href="{{ url_for('compte_bancaire_modifier_formulaire', compte_id=compte.id) }}">Modifier</a>
-                <form method="post" action="{{ url_for('compte_bancaire_supprimer', compte_id=compte.id) }}" style="display:inline"
-                      onsubmit="return confirm('Supprimer ce compte ?');">
-                    <button type="submit">Supprimer</button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4">Aucun compte bancaire enregistré.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="page-titre">
+    <h1 class="h3 mb-0">Comptes bancaires</h1>
+    <a href="{{ url_for('compte_bancaire_nouveau_formulaire') }}" class="btn btn-primary">+ Ajouter un compte bancaire</a>
+</div>
+
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Libellé</th><th>Banque</th><th>IBAN</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for compte in comptes %}
+                <tr>
+                    <td class="fw-semibold">{{ compte.libelle }}</td>
+                    <td>{{ compte.banque.value }}</td>
+                    <td>{{ compte.iban or "—" }}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('compte_bancaire_modifier_formulaire', compte_id=compte.id) }}" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                            <form method="post" action="{{ url_for('compte_bancaire_supprimer', compte_id=compte.id) }}" class="d-inline"
+                                  onsubmit="return confirm('Supprimer ce compte ?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-secondary text-center py-4">Aucun compte bancaire enregistré.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

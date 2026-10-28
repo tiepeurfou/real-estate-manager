@@ -3,39 +3,59 @@
 {% block titre %}{{ "Modifier" if unite else "Ajouter" }} une unité — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>{{ "Modifier" if unite else "Ajouter" }} une unité — {{ bien.libelle }}</h1>
+<h1 class="h3 mb-4">{{ "Modifier" if unite else "Ajouter" }} une unité — {{ bien.libelle }}</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('unite_modifier', unite_id=unite.id) if unite else url_for('unite_creer', bien_id=bien.id) }}">
-    <label for="libelle">Libellé</label>
-    <input type="text" id="libelle" name="libelle" value="{{ unite.libelle if unite else '' }}" required>
+        <form method="post" action="{{ url_for('unite_modifier', unite_id=unite.id) if unite else url_for('unite_creer', bien_id=bien.id) }}">
+            <div class="mb-3">
+                <label for="libelle" class="form-label">Libellé</label>
+                <input type="text" class="form-control" id="libelle" name="libelle" value="{{ unite.libelle if unite else '' }}" required>
+            </div>
 
-    <label for="etage">Étage</label>
-    <input type="text" id="etage" name="etage" value="{{ unite.etage if unite and unite.etage else '' }}">
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="etage" class="form-label">Étage</label>
+                    <input type="text" class="form-control" id="etage" name="etage" value="{{ unite.etage if unite and unite.etage else '' }}">
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label for="surface_m2" class="form-label">Surface (m²)</label>
+                    <input type="number" step="0.1" class="form-control" id="surface_m2" name="surface_m2" value="{{ unite.surface_m2 if unite and unite.surface_m2 else '' }}">
+                </div>
+            </div>
 
-    <label for="surface_m2">Surface (m²)</label>
-    <input type="number" step="0.1" id="surface_m2" name="surface_m2" value="{{ unite.surface_m2 if unite and unite.surface_m2 else '' }}">
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="nb_pieces" class="form-label">Nombre de pièces</label>
+                    <input type="number" step="1" class="form-control" id="nb_pieces" name="nb_pieces" value="{{ unite.nb_pieces if unite and unite.nb_pieces else '' }}">
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label for="dpe_lettre" class="form-label">DPE</label>
+                    <select id="dpe_lettre" name="dpe_lettre" class="form-select">
+                        <option value="">—</option>
+                        {% for lettre in lettres_dpe %}
+                        <option value="{{ lettre.value }}" {{ "selected" if unite and unite.dpe_lettre == lettre else "" }}>{{ lettre.value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
 
-    <label for="nb_pieces">Nombre de pièces</label>
-    <input type="number" step="1" id="nb_pieces" name="nb_pieces" value="{{ unite.nb_pieces if unite and unite.nb_pieces else '' }}">
+            <div class="mb-3">
+                <label for="dpe_date" class="form-label">Date du diagnostic</label>
+                <input type="date" class="form-control" id="dpe_date" name="dpe_date" value="{{ unite.dpe_date if unite and unite.dpe_date else '' }}">
+            </div>
 
-    <label for="dpe_lettre">DPE</label>
-    <select id="dpe_lettre" name="dpe_lettre">
-        <option value="">—</option>
-        {% for lettre in lettres_dpe %}
-        <option value="{{ lettre.value }}" {{ "selected" if unite and unite.dpe_lettre == lettre else "" }}>{{ lettre.value }}</option>
-        {% endfor %}
-    </select>
+            <div class="mb-4">
+                <label for="regime_fiscal" class="form-label">Régime fiscal</label>
+                <input type="text" class="form-control" id="regime_fiscal" name="regime_fiscal" value="{{ unite.regime_fiscal if unite and unite.regime_fiscal else '' }}">
+            </div>
 
-    <label for="dpe_date">Date du diagnostic</label>
-    <input type="date" id="dpe_date" name="dpe_date" value="{{ unite.dpe_date if unite and unite.dpe_date else '' }}">
-
-    <label for="regime_fiscal">Régime fiscal</label>
-    <input type="text" id="regime_fiscal" name="regime_fiscal" value="{{ unite.regime_fiscal if unite and unite.regime_fiscal else '' }}">
-
-    <button type="submit">Enregistrer</button>
-</form>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

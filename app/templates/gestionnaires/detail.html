@@ -3,49 +3,60 @@
 {% block titre %}{{ gestionnaire.nom }} — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('gestionnaires_liste') }}">← Gestionnaires</a></p>
-<h1>{{ gestionnaire.nom }}</h1>
-<p>{{ gestionnaire.contact_email or "—" }} · {{ gestionnaire.contact_tel or "—" }}</p>
-<p>Compte bancaire : {{ gestionnaire.compte_bancaire.libelle if gestionnaire.compte_bancaire else "—" }}</p>
+<p><a href="{{ url_for('gestionnaires_liste') }}" class="text-decoration-none">&larr; Gestionnaires</a></p>
 
-<p>
-    <a href="{{ url_for('gestionnaire_modifier_formulaire', gestionnaire_id=gestionnaire.id) }}">Modifier</a>
-    <form method="post" action="{{ url_for('gestionnaire_supprimer', gestionnaire_id=gestionnaire.id) }}" style="display:inline"
-          onsubmit="return confirm('Supprimer ce gestionnaire ?');">
-        <button type="submit">Supprimer</button>
-    </form>
-</p>
+<div class="page-titre">
+    <div>
+        <h1 class="h3 mb-1">{{ gestionnaire.nom }}</h1>
+        <p class="text-secondary mb-0">{{ gestionnaire.contact_email or "—" }} · {{ gestionnaire.contact_tel or "—" }} · Compte : {{ gestionnaire.compte_bancaire.libelle if gestionnaire.compte_bancaire else "—" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('gestionnaire_modifier_formulaire', gestionnaire_id=gestionnaire.id) }}" class="btn btn-outline-secondary">Modifier</a>
+        <form method="post" action="{{ url_for('gestionnaire_supprimer', gestionnaire_id=gestionnaire.id) }}" class="d-inline"
+              onsubmit="return confirm('Supprimer ce gestionnaire ?');">
+            <button type="submit" class="btn btn-outline-danger">Supprimer</button>
+        </form>
+    </div>
+</div>
 
-<h2>Mandats</h2>
-<p><a href="{{ url_for('mandat_nouveau_formulaire', gestionnaire_id=gestionnaire.id) }}">Lier une unité</a></p>
+<div class="page-titre">
+    <h2 class="h5 mb-0">Mandats</h2>
+    <a href="{{ url_for('mandat_nouveau_formulaire', gestionnaire_id=gestionnaire.id) }}" class="btn btn-sm btn-primary">+ Lier une unité</a>
+</div>
 
-<table>
-    <thead>
-        <tr><th>Bien</th><th>Unité</th><th>Rôle</th><th>Début</th><th>Fin</th><th></th></tr>
-    </thead>
-    <tbody>
-        {% for mandat in mandats %}
-        {% set unite = unites_par_id.get(mandat.unite_locative_id) %}
-        {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
-        <tr>
-            <td>{{ bien.libelle if bien else "—" }}</td>
-            <td>{{ unite.libelle if unite else "—" }}</td>
-            <td>{{ mandat.role.value }}</td>
-            <td>{{ mandat.date_debut }}</td>
-            <td>{{ mandat.date_fin or "—" }}</td>
-            <td>
-                {% if not mandat.date_fin %}
-                <a href="{{ url_for('mandat_terminer_formulaire', mandat_id=mandat.id) }}">Terminer</a>
-                {% endif %}
-                <form method="post" action="{{ url_for('mandat_supprimer', mandat_id=mandat.id) }}" style="display:inline"
-                      onsubmit="return confirm('Supprimer ce mandat ?');">
-                    <button type="submit">Supprimer</button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="6">Aucun mandat.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien</th><th>Unité</th><th>Rôle</th><th>Début</th><th>Fin</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for mandat in mandats %}
+                {% set unite = unites_par_id.get(mandat.unite_locative_id) %}
+                {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
+                <tr>
+                    <td>{{ bien.libelle if bien else "—" }}</td>
+                    <td>{{ unite.libelle if unite else "—" }}</td>
+                    <td><span class="badge text-bg-info-subtle text-info-emphasis">{{ mandat.role.value }}</span></td>
+                    <td>{{ mandat.date_debut }}</td>
+                    <td>{{ mandat.date_fin or "—" }}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            {% if not mandat.date_fin %}
+                            <a href="{{ url_for('mandat_terminer_formulaire', mandat_id=mandat.id) }}" class="btn btn-sm btn-outline-secondary">Terminer</a>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('mandat_supprimer', mandat_id=mandat.id) }}" class="d-inline"
+                                  onsubmit="return confirm('Supprimer ce mandat ?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-secondary text-center py-4">Aucun mandat.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

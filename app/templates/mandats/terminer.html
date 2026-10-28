@@ -3,15 +3,21 @@
 {% block titre %}Terminer un mandat — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Terminer le mandat</h1>
+<h1 class="h3 mb-4">Terminer le mandat</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('mandat_terminer', mandat_id=mandat.id) }}">
-    <label for="date_fin">Date de fin</label>
-    <input type="date" id="date_fin" name="date_fin" required>
-    <button type="submit">Confirmer</button>
-</form>
+        <form method="post" action="{{ url_for('mandat_terminer', mandat_id=mandat.id) }}">
+            <div class="mb-4">
+                <label for="date_fin" class="form-label">Date de fin</label>
+                <input type="date" class="form-control" id="date_fin" name="date_fin" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Confirmer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

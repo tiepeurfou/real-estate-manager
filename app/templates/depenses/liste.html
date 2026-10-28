@@ -3,51 +3,63 @@
 {% block titre %}Dépenses — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('virements_liste') }}">← Finances</a></p>
-<h1>Dépenses</h1>
+<p><a href="{{ url_for('virements_liste') }}" class="text-decoration-none">&larr; Finances</a></p>
+<h1 class="h3 mb-4">Dépenses</h1>
 
-<form method="get" action="{{ url_for('depenses_liste') }}">
-    <label for="bien_id">Bien</label>
-    <select id="bien_id" name="bien_id">
-        <option value="">Tous</option>
-        {% for b in biens %}
-        <option value="{{ b.id }}" {{ "selected" if bien_id_filtre == b.id|string else "" }}>{{ b.libelle }}</option>
-        {% endfor %}
-    </select>
+<div class="card carte-ombre mb-4">
+    <div class="card-body">
+        <form method="get" action="{{ url_for('depenses_liste') }}" class="row g-3 align-items-end">
+            <div class="col-sm-4">
+                <label for="bien_id" class="form-label">Bien</label>
+                <select id="bien_id" name="bien_id" class="form-select">
+                    <option value="">Tous</option>
+                    {% for b in biens %}
+                    <option value="{{ b.id }}" {{ "selected" if bien_id_filtre == b.id|string else "" }}>{{ b.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-4">
+                <label for="categorie" class="form-label">Catégorie</label>
+                <input type="text" class="form-control" id="categorie" name="categorie" value="{{ categorie_filtre }}">
+            </div>
+            <div class="col-sm-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <label for="categorie">Catégorie</label>
-    <input type="text" id="categorie" name="categorie" value="{{ categorie_filtre }}">
-
-    <button type="submit">Filtrer</button>
-</form>
-
-<h2>Totaux par catégorie</h2>
-<ul>
+<h2 class="h5 mb-3">Totaux par catégorie</h2>
+<div class="d-flex flex-wrap gap-2 mb-4">
     {% for categorie, total in totaux_par_categorie.items() %}
-    <li>{{ categorie }} : {{ "%.2f"|format(total) }} €</li>
+    <span class="badge text-bg-light border p-2 fs-6">{{ categorie }} : {{ "%.2f"|format(total) }} €</span>
     {% else %}
-    <li>Aucune dépense.</li>
+    <span class="text-secondary">Aucune dépense.</span>
     {% endfor %}
-</ul>
+</div>
 
-<table>
-    <thead>
-        <tr><th>Date</th><th>Bien/Unité</th><th>Catégorie</th><th>Libellé</th><th>Montant</th></tr>
-    </thead>
-    <tbody>
-        {% for ligne in lignes %}
-        {% set unite = unites_par_id.get(ligne.unite_locative_id) if ligne.unite_locative_id else None %}
-        {% set bien = biens_par_id.get(ligne.bien_id) if ligne.bien_id else (biens_par_id.get(unite.bien_id) if unite else None) %}
-        <tr>
-            <td>{{ ligne.date }}</td>
-            <td>{{ bien.libelle if bien else "—" }}{{ " — " ~ unite.libelle if unite else "" }}</td>
-            <td>{{ ligne.categorie }}</td>
-            <td>{{ ligne.libelle }}</td>
-            <td>{{ "%.2f"|format(ligne.montant) }} €</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5">Aucune dépense.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Date</th><th>Bien/Unité</th><th>Catégorie</th><th>Libellé</th><th class="text-end">Montant</th></tr>
+            </thead>
+            <tbody>
+                {% for ligne in lignes %}
+                {% set unite = unites_par_id.get(ligne.unite_locative_id) if ligne.unite_locative_id else None %}
+                {% set bien = biens_par_id.get(ligne.bien_id) if ligne.bien_id else (biens_par_id.get(unite.bien_id) if unite else None) %}
+                <tr>
+                    <td>{{ ligne.date }}</td>
+                    <td>{{ bien.libelle if bien else "—" }}{{ " — " ~ unite.libelle if unite else "" }}</td>
+                    <td><span class="badge text-bg-light border">{{ ligne.categorie }}</span></td>
+                    <td>{{ ligne.libelle }}</td>
+                    <td class="text-end fw-semibold">{{ "%.2f"|format(ligne.montant) }} €</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-secondary text-center py-4">Aucune dépense.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

@@ -3,39 +3,43 @@
 {% block titre %}Locataires — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Locataires</h1>
-<p><a href="{{ url_for('locataire_nouveau_formulaire') }}">Ajouter un locataire</a></p>
+<div class="page-titre">
+    <h1 class="h3 mb-0">Locataires</h1>
+    <a href="{{ url_for('locataire_nouveau_formulaire') }}" class="btn btn-primary">+ Ajouter un locataire</a>
+</div>
 
-<p>
-    Filtrer :
-    <a href="{{ url_for('locataires_liste') }}?statut=tous">Tous</a>
-    · <a href="{{ url_for('locataires_liste') }}?statut=actif">Actifs</a>
-    · <a href="{{ url_for('locataires_liste') }}?statut=historique">Historique</a>
-    ({{ statut }})
-</p>
+<div class="btn-group mb-3" role="group">
+    <a href="{{ url_for('locataires_liste') }}?statut=tous" class="btn btn-sm {{ 'btn-primary' if statut == 'tous' else 'btn-outline-secondary' }}">Tous</a>
+    <a href="{{ url_for('locataires_liste') }}?statut=actif" class="btn btn-sm {{ 'btn-primary' if statut == 'actif' else 'btn-outline-secondary' }}">Actifs</a>
+    <a href="{{ url_for('locataires_liste') }}?statut=historique" class="btn btn-sm {{ 'btn-primary' if statut == 'historique' else 'btn-outline-secondary' }}">Historique</a>
+</div>
 
-<table>
-    <thead>
-        <tr><th>Nom</th><th>Prénom</th><th>Garantie</th><th>Unité occupée</th></tr>
-    </thead>
-    <tbody>
-        {% for locataire in locataires %}
-        {% set occ = occupation_active_par_locataire.get(locataire.id) %}
-        <tr>
-            <td><a href="{{ url_for('locataire_detail', locataire_id=locataire.id) }}">{{ locataire.nom }}</a></td>
-            <td>{{ locataire.prenom }}</td>
-            <td>{{ locataire.type_garantie.value }}</td>
-            <td>
-                {% if occ and occ.bien and occ.unite %}
-                    {{ occ.bien.libelle }} — {{ occ.unite.libelle }}
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Nom</th><th>Prénom</th><th>Garantie</th><th>Unité occupée</th></tr>
+            </thead>
+            <tbody>
+                {% for locataire in locataires %}
+                {% set occ = occupation_active_par_locataire.get(locataire.id) %}
+                <tr>
+                    <td><a href="{{ url_for('locataire_detail', locataire_id=locataire.id) }}" class="fw-semibold">{{ locataire.nom }}</a></td>
+                    <td>{{ locataire.prenom }}</td>
+                    <td><span class="badge text-bg-light border">{{ locataire.type_garantie.value }}</span></td>
+                    <td>
+                        {% if occ and occ.bien and occ.unite %}
+                            {{ occ.bien.libelle }} — {{ occ.unite.libelle }}
+                        {% else %}
+                            <span class="text-secondary">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
                 {% else %}
-                    —
-                {% endif %}
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4">Aucun locataire.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+                <tr><td colspan="4" class="text-secondary text-center py-4">Aucun locataire.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

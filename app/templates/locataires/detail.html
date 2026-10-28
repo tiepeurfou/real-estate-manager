@@ -3,39 +3,49 @@
 {% block titre %}{{ locataire.nom }} {{ locataire.prenom }} — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('locataires_liste') }}">← Locataires</a></p>
-<h1>{{ locataire.nom }} {{ locataire.prenom }}</h1>
-<p>{{ locataire.email or "—" }} · {{ locataire.telephone or "—" }}</p>
-<p>Garantie : {{ locataire.type_garantie.value }}</p>
-{% if locataire.garant_nom %}<p>Garant : {{ locataire.garant_nom }} ({{ locataire.garant_contact or "—" }})</p>{% endif %}
+<p><a href="{{ url_for('locataires_liste') }}" class="text-decoration-none">&larr; Locataires</a></p>
 
-<p>
-    <a href="{{ url_for('locataire_modifier_formulaire', locataire_id=locataire.id) }}">Modifier</a>
-    <form method="post" action="{{ url_for('locataire_supprimer', locataire_id=locataire.id) }}" style="display:inline"
-          onsubmit="return confirm('Supprimer ce locataire ?');">
-        <button type="submit">Supprimer</button>
-    </form>
-</p>
+<div class="page-titre">
+    <div>
+        <h1 class="h3 mb-1">{{ locataire.nom }} {{ locataire.prenom }}</h1>
+        <p class="text-secondary mb-0">
+            {{ locataire.email or "—" }} · {{ locataire.telephone or "—" }} ·
+            <span class="badge text-bg-light border">{{ locataire.type_garantie.value }}</span>
+            {% if locataire.garant_nom %} · Garant : {{ locataire.garant_nom }} ({{ locataire.garant_contact or "—" }}){% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('locataire_modifier_formulaire', locataire_id=locataire.id) }}" class="btn btn-outline-secondary">Modifier</a>
+        <form method="post" action="{{ url_for('locataire_supprimer', locataire_id=locataire.id) }}" class="d-inline"
+              onsubmit="return confirm('Supprimer ce locataire ?');">
+            <button type="submit" class="btn btn-outline-danger">Supprimer</button>
+        </form>
+    </div>
+</div>
 
-<h2>Historique des occupations</h2>
-<table>
-    <thead>
-        <tr><th>Bien</th><th>Unité</th><th>Entrée</th><th>Sortie</th><th>Statut</th></tr>
-    </thead>
-    <tbody>
-        {% for occupation in occupations %}
-        {% set unite = unites_par_id.get(occupation.unite_locative_id) %}
-        {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
-        <tr>
-            <td>{{ bien.libelle if bien else "—" }}</td>
-            <td>{{ unite.libelle if unite else "—" }}</td>
-            <td>{{ occupation.date_entree }}</td>
-            <td>{{ occupation.date_sortie or "—" }}</td>
-            <td>{{ occupation.statut.value }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5">Aucune occupation.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h2 class="h5 mb-3">Historique des occupations</h2>
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien</th><th>Unité</th><th>Entrée</th><th>Sortie</th><th>Statut</th></tr>
+            </thead>
+            <tbody>
+                {% for occupation in occupations %}
+                {% set unite = unites_par_id.get(occupation.unite_locative_id) %}
+                {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
+                <tr>
+                    <td>{{ bien.libelle if bien else "—" }}</td>
+                    <td>{{ unite.libelle if unite else "—" }}</td>
+                    <td>{{ occupation.date_entree }}</td>
+                    <td>{{ occupation.date_sortie or "—" }}</td>
+                    <td><span class="badge {{ 'text-bg-success' if occupation.statut.value == 'active' else 'text-bg-secondary' }}">{{ occupation.statut.value }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-secondary text-center py-4">Aucune occupation.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

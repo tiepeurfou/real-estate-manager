@@ -3,31 +3,45 @@
 {% block titre %}Grille des paiements — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('virements_liste') }}">← Finances</a></p>
-<h1>Grille des paiements</h1>
+<p><a href="{{ url_for('virements_liste') }}" class="text-decoration-none">&larr; Finances</a></p>
+<h1 class="h3 mb-4">Grille des paiements</h1>
 
-<table>
-    <thead>
-        <tr>
-            <th>Unité</th>
-            {% for mois in mois_liste %}
-            <th>{{ mois.strftime("%m/%Y") }}</th>
-            {% endfor %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for unite in unites %}
-        {% set bien = biens_par_id.get(unite.bien_id) %}
-        <tr>
-            <td>{{ bien.libelle if bien else "—" }} — {{ unite.libelle }}</td>
-            {% for mois in mois_liste %}
-            {% set ligne = ligne_par_unite_periode.get((unite.id, mois)) %}
-            <td>{{ ligne.statut.value if ligne else "—" }}</td>
-            {% endfor %}
-        </tr>
-        {% else %}
-        <tr><td colspan="{{ mois_liste|length + 1 }}">Aucune unité.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-center">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start">Unité</th>
+                    {% for mois in mois_liste %}
+                    <th>{{ mois.strftime("%m/%Y") }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for unite in unites %}
+                {% set bien = biens_par_id.get(unite.bien_id) %}
+                <tr>
+                    <td class="text-start fw-semibold">{{ bien.libelle if bien else "—" }} — {{ unite.libelle }}</td>
+                    {% for mois in mois_liste %}
+                    {% set ligne = ligne_par_unite_periode.get((unite.id, mois)) %}
+                    <td>
+                        {% if not ligne %}
+                            <span class="text-secondary">—</span>
+                        {% elif ligne.statut.value == "paye" %}
+                            <span class="badge text-bg-success">{{ ligne.statut.value }}</span>
+                        {% elif ligne.statut.value == "partiel" %}
+                            <span class="badge text-bg-warning">{{ ligne.statut.value }}</span>
+                        {% else %}
+                            <span class="badge text-bg-danger">{{ ligne.statut.value }}</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ mois_liste|length + 1 }}" class="text-secondary py-4">Aucune unité.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

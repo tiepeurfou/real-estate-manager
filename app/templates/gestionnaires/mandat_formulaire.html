@@ -3,31 +3,41 @@
 {% block titre %}Lier une unité — {{ gestionnaire.nom }}{% endblock %}
 
 {% block contenu %}
-<h1>Lier une unité à {{ gestionnaire.nom }}</h1>
+<h1 class="h3 mb-4">Lier une unité à {{ gestionnaire.nom }}</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('mandat_creer', gestionnaire_id=gestionnaire.id) }}">
-    <label for="unite_locative_id">Unité locative</label>
-    <select id="unite_locative_id" name="unite_locative_id" required>
-        {% for unite in unites %}
-        {% set bien = biens_par_id.get(unite.bien_id) %}
-        <option value="{{ unite.id }}">{{ bien.libelle if bien else "?" }} — {{ unite.libelle }}</option>
-        {% endfor %}
-    </select>
+        <form method="post" action="{{ url_for('mandat_creer', gestionnaire_id=gestionnaire.id) }}">
+            <div class="mb-3">
+                <label for="unite_locative_id" class="form-label">Unité locative</label>
+                <select id="unite_locative_id" name="unite_locative_id" class="form-select" required>
+                    {% for unite in unites %}
+                    {% set bien = biens_par_id.get(unite.bien_id) %}
+                    <option value="{{ unite.id }}">{{ bien.libelle if bien else "?" }} — {{ unite.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-    <label for="role">Rôle</label>
-    <select id="role" name="role" required>
-        {% for r in roles %}
-        <option value="{{ r.value }}">{{ r.value }}</option>
-        {% endfor %}
-    </select>
+            <div class="mb-3">
+                <label for="role" class="form-label">Rôle</label>
+                <select id="role" name="role" class="form-select" required>
+                    {% for r in roles %}
+                    <option value="{{ r.value }}">{{ r.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-    <label for="date_debut">Date de début</label>
-    <input type="date" id="date_debut" name="date_debut" required>
+            <div class="mb-4">
+                <label for="date_debut" class="form-label">Date de début</label>
+                <input type="date" class="form-control" id="date_debut" name="date_debut" required>
+            </div>
 
-    <button type="submit">Enregistrer</button>
-</form>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

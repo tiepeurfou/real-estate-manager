@@ -3,28 +3,38 @@
 {% block titre %}{{ "Modifier" if compte else "Ajouter" }} un compte bancaire — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>{{ "Modifier" if compte else "Ajouter" }} un compte bancaire</h1>
+<h1 class="h3 mb-4">{{ "Modifier" if compte else "Ajouter" }} un compte bancaire</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('compte_bancaire_modifier', compte_id=compte.id) if compte else url_for('compte_bancaire_creer') }}">
-    {% if not compte %}
-    <label for="banque">Banque</label>
-    <select id="banque" name="banque" required>
-        {% for b in banques %}
-        <option value="{{ b.value }}">{{ b.value }}</option>
-        {% endfor %}
-    </select>
-    {% endif %}
+        <form method="post" action="{{ url_for('compte_bancaire_modifier', compte_id=compte.id) if compte else url_for('compte_bancaire_creer') }}">
+            {% if not compte %}
+            <div class="mb-3">
+                <label for="banque" class="form-label">Banque</label>
+                <select id="banque" name="banque" class="form-select" required>
+                    {% for b in banques %}
+                    <option value="{{ b.value }}">{{ b.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
 
-    <label for="libelle">Libellé</label>
-    <input type="text" id="libelle" name="libelle" value="{{ compte.libelle if compte else '' }}" required>
+            <div class="mb-3">
+                <label for="libelle" class="form-label">Libellé</label>
+                <input type="text" class="form-control" id="libelle" name="libelle" value="{{ compte.libelle if compte else '' }}" required>
+            </div>
 
-    <label for="iban">IBAN (optionnel)</label>
-    <input type="text" id="iban" name="iban" value="{{ compte.iban if compte and compte.iban else '' }}">
+            <div class="mb-4">
+                <label for="iban" class="form-label">IBAN (optionnel)</label>
+                <input type="text" class="form-control" id="iban" name="iban" value="{{ compte.iban if compte and compte.iban else '' }}">
+            </div>
 
-    <button type="submit">Enregistrer</button>
-</form>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}

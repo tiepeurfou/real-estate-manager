@@ -3,17 +3,31 @@
 {% block titre %}Connexion — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<form class="formulaire-connexion" method="post" action="{{ url_for('login_submit') }}">
-    <h1>Connexion</h1>
-    {% if erreur %}
-        <p class="erreur">{{ erreur }}</p>
-    {% endif %}
-    <label for="email">Email</label>
-    <input type="email" id="email" name="email" required autofocus>
+<div class="page-connexion">
+    <div class="card carte-ombre carte-formulaire w-100">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <span class="brand-mark" style="background: var(--rem-brand); color: #fff;">REM</span>
+                <h1 class="h3 mt-3 mb-0">Real Estate Manager</h1>
+                <p class="text-secondary small">Connexion à votre espace</p>
+            </div>
 
-    <label for="password">Mot de passe</label>
-    <input type="password" id="password" name="password" required>
+            {% if erreur %}
+                <div class="alert alert-danger" role="alert">{{ erreur }}</div>
+            {% endif %}
 
-    <button type="submit">Se connecter</button>
-</form>
+            <form method="post" action="{{ url_for('login_submit') }}">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required autofocus>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

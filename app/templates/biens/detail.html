@@ -3,64 +3,76 @@
 {% block titre %}{{ bien.libelle }} — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('biens_liste') }}">← Patrimoine</a></p>
-<h1>{{ bien.libelle }}</h1>
-<p>{{ bien.adresse_rue }}, {{ bien.adresse_code_postal }} {{ bien.adresse_ville }}</p>
-<p>Type : {{ bien.type.value }}</p>
-{% if bien.notes %}<p>{{ bien.notes }}</p>{% endif %}
+<p><a href="{{ url_for('biens_liste') }}" class="text-decoration-none">&larr; Patrimoine</a></p>
 
-<p>
-    <a href="{{ url_for('bien_modifier_formulaire', bien_id=bien.id) }}">Modifier</a>
-    <form method="post" action="{{ url_for('bien_supprimer', bien_id=bien.id) }}" style="display:inline"
-          onsubmit="return confirm('Supprimer ce bien ?');">
-        <button type="submit">Supprimer</button>
-    </form>
-</p>
+<div class="page-titre">
+    <div>
+        <h1 class="h3 mb-1">{{ bien.libelle }}</h1>
+        <p class="text-secondary mb-0">{{ bien.adresse_rue }}, {{ bien.adresse_code_postal }} {{ bien.adresse_ville }} · <span class="badge text-bg-light border">{{ bien.type.value }}</span></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('bien_modifier_formulaire', bien_id=bien.id) }}" class="btn btn-outline-secondary">Modifier</a>
+        <form method="post" action="{{ url_for('bien_supprimer', bien_id=bien.id) }}" class="d-inline"
+              onsubmit="return confirm('Supprimer ce bien ?');">
+            <button type="submit" class="btn btn-outline-danger">Supprimer</button>
+        </form>
+    </div>
+</div>
 
-<h2>Unités locatives</h2>
-{% if bien.type.value == "immeuble" %}
-<p><a href="{{ url_for('unite_nouvelle_formulaire', bien_id=bien.id) }}">Ajouter une unité</a></p>
-{% endif %}
+{% if bien.notes %}<p class="text-secondary">{{ bien.notes }}</p>{% endif %}
 
-<table>
-    <thead>
-        <tr>
-            <th>Libellé</th>
-            <th>Étage</th>
-            <th>Surface</th>
-            <th>DPE</th>
-            <th>Occupation</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for unite in unites %}
-        {% set occ = occupation_par_unite.get(unite.id) %}
-        <tr>
-            <td>{{ unite.libelle }}</td>
-            <td>{{ unite.etage or "—" }}</td>
-            <td>{{ unite.surface_m2 ~ " m²" if unite.surface_m2 else "—" }}</td>
-            <td>{{ unite.dpe_lettre.value if unite.dpe_lettre else "—" }}</td>
-            <td>
-                {% if occ %}
-                    {{ occ.locataires | map(attribute="nom") | join(", ") }}
-                    <a href="{{ url_for('occupation_cloturer_formulaire', occupation_id=occ.occupation.id) }}">Clôturer</a>
-                {% else %}
-                    Vacant
-                    <a href="{{ url_for('occupation_nouvelle_formulaire', unite_id=unite.id) }}">Attribuer</a>
-                {% endif %}
-            </td>
-            <td>
-                <a href="{{ url_for('unite_modifier_formulaire', unite_id=unite.id) }}">Modifier</a>
-                {% if bien.type.value == "immeuble" %}
-                <form method="post" action="{{ url_for('unite_supprimer', unite_id=unite.id) }}" style="display:inline"
-                      onsubmit="return confirm('Supprimer cette unité ?');">
-                    <button type="submit">Supprimer</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="page-titre">
+    <h2 class="h5 mb-0">Unités locatives</h2>
+    {% if bien.type.value == "immeuble" %}
+    <a href="{{ url_for('unite_nouvelle_formulaire', bien_id=bien.id) }}" class="btn btn-sm btn-primary">+ Ajouter une unité</a>
+    {% endif %}
+</div>
+
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Libellé</th>
+                    <th>Étage</th>
+                    <th>Surface</th>
+                    <th>DPE</th>
+                    <th>Occupation</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unite in unites %}
+                {% set occ = occupation_par_unite.get(unite.id) %}
+                <tr>
+                    <td class="fw-semibold">{{ unite.libelle }}</td>
+                    <td>{{ unite.etage or "—" }}</td>
+                    <td>{{ unite.surface_m2 ~ " m²" if unite.surface_m2 else "—" }}</td>
+                    <td>{{ unite.dpe_lettre.value if unite.dpe_lettre else "—" }}</td>
+                    <td>
+                        {% if occ %}
+                            <span class="badge text-bg-success">{{ occ.locataires | map(attribute="nom") | join(", ") }}</span>
+                            <a href="{{ url_for('occupation_cloturer_formulaire', occupation_id=occ.occupation.id) }}" class="ms-2 small">Clôturer</a>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Vacant</span>
+                            <a href="{{ url_for('occupation_nouvelle_formulaire', unite_id=unite.id) }}" class="ms-2 small">Attribuer</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('unite_modifier_formulaire', unite_id=unite.id) }}" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                            {% if bien.type.value == "immeuble" %}
+                            <form method="post" action="{{ url_for('unite_supprimer', unite_id=unite.id) }}" class="d-inline"
+                                  onsubmit="return confirm('Supprimer cette unité ?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

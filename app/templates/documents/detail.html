@@ -3,56 +3,77 @@
 {% block titre %}Document du {{ releve.date_reception.strftime("%d/%m/%Y") }} — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('documents_liste') }}">← Documents</a></p>
-<h1>{{ releve.gestionnaire.nom if releve.gestionnaire else "—" }} — {{ releve.bien.libelle if releve.bien else "—" }}</h1>
-<p>Période : {{ releve.periode.strftime("%m/%Y") }} · Reçu le {{ releve.date_reception.strftime("%d/%m/%Y") }}</p>
-<p>Statut : {{ releve.statut_extraction.value }}</p>
+<p><a href="{{ url_for('documents_liste') }}" class="text-decoration-none">&larr; Documents</a></p>
+
+<div class="page-titre">
+    <div>
+        <h1 class="h3 mb-1">{{ releve.gestionnaire.nom if releve.gestionnaire else "—" }} — {{ releve.bien.libelle if releve.bien else "—" }}</h1>
+        <p class="text-secondary mb-0">
+            Période : {{ releve.periode.strftime("%m/%Y") }} · Reçu le {{ releve.date_reception.strftime("%d/%m/%Y") }} ·
+            {% if releve.statut_extraction.value == "traite_ok" %}
+            <span class="badge text-bg-success">{{ releve.statut_extraction.value }}</span>
+            {% elif releve.statut_extraction.value == "erreur_extraction" %}
+            <span class="badge text-bg-danger">{{ releve.statut_extraction.value }}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{{ releve.statut_extraction.value }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('document_fichier', releve_id=releve.id) }}" class="btn btn-outline-secondary" target="_blank">Voir le PDF</a>
+        <form method="post" action="{{ url_for('document_relancer', releve_id=releve.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary">Relancer l'extraction</button>
+        </form>
+        <form method="post" action="{{ url_for('document_supprimer', releve_id=releve.id) }}" class="d-inline"
+              onsubmit="return confirm('Supprimer ce document ?');">
+            <button type="submit" class="btn btn-outline-danger">Supprimer</button>
+        </form>
+    </div>
+</div>
+
 {% if releve.erreur_extraction_message %}
-    <p class="erreur">{{ releve.erreur_extraction_message }}</p>
+    <div class="alert alert-danger">{{ releve.erreur_extraction_message }}</div>
 {% endif %}
 
-<p>
-    <a href="{{ url_for('document_fichier', releve_id=releve.id) }}">Voir le PDF</a>
-    <form method="post" action="{{ url_for('document_relancer', releve_id=releve.id) }}" style="display:inline">
-        <button type="submit">Relancer l'extraction</button>
-    </form>
-    <form method="post" action="{{ url_for('document_supprimer', releve_id=releve.id) }}" style="display:inline"
-          onsubmit="return confirm('Supprimer ce document ?');">
-        <button type="submit">Supprimer</button>
-    </form>
-</p>
+<h2 class="h5 mb-3">Paiements extraits</h2>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Unité</th><th>Période</th><th>Attendu</th><th>Perçu</th><th>Statut</th></tr></thead>
+            <tbody>
+                {% for p in paiements %}
+                <tr>
+                    <td>{{ p.unite_locative.libelle if p.unite_locative else "—" }}</td>
+                    <td>{{ p.periode }}</td>
+                    <td>{{ "%.2f"|format(p.montant_attendu) }} €</td>
+                    <td>{{ "%.2f"|format(p.montant_percu) }} €</td>
+                    <td>{{ p.statut.value }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-secondary text-center py-4">Aucune ligne de paiement extraite.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
-<h2>Paiements extraits</h2>
-<table>
-    <thead><tr><th>Unité</th><th>Période</th><th>Attendu</th><th>Perçu</th><th>Statut</th></tr></thead>
-    <tbody>
-        {% for p in paiements %}
-        <tr>
-            <td>{{ p.unite_locative.libelle if p.unite_locative else "—" }}</td>
-            <td>{{ p.periode }}</td>
-            <td>{{ "%.2f"|format(p.montant_attendu) }} €</td>
-            <td>{{ "%.2f"|format(p.montant_percu) }} €</td>
-            <td>{{ p.statut.value }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5">Aucune ligne de paiement extraite.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<h2>Dépenses extraites</h2>
-<table>
-    <thead><tr><th>Catégorie</th><th>Libellé</th><th>Montant</th></tr></thead>
-    <tbody>
-        {% for d in depenses %}
-        <tr>
-            <td>{{ d.categorie }}</td>
-            <td>{{ d.libelle }}</td>
-            <td>{{ "%.2f"|format(d.montant) }} €</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="3">Aucune ligne de dépense extraite.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h2 class="h5 mb-3">Dépenses extraites</h2>
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light"><tr><th>Catégorie</th><th>Libellé</th><th>Montant</th></tr></thead>
+            <tbody>
+                {% for d in depenses %}
+                <tr>
+                    <td>{{ d.categorie }}</td>
+                    <td>{{ d.libelle }}</td>
+                    <td>{{ "%.2f"|format(d.montant) }} €</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-secondary text-center py-4">Aucune ligne de dépense extraite.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

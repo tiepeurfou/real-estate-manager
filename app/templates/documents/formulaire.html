@@ -3,33 +3,45 @@
 {% block titre %}Importer un document — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<h1>Importer un compte-rendu de gestion</h1>
+<h1 class="h3 mb-4">Importer un compte-rendu de gestion</h1>
 
-{% if erreur %}
-    <p class="erreur">{{ erreur }}</p>
-{% endif %}
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
 
-<form method="post" action="{{ url_for('document_televerser') }}" enctype="multipart/form-data">
-    <label for="gestionnaire_id">Gestionnaire</label>
-    <select id="gestionnaire_id" name="gestionnaire_id" required>
-        {% for g in gestionnaires %}
-        <option value="{{ g.id }}">{{ g.nom }}</option>
-        {% endfor %}
-    </select>
+        <form method="post" action="{{ url_for('document_televerser') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="gestionnaire_id" class="form-label">Gestionnaire</label>
+                <select id="gestionnaire_id" name="gestionnaire_id" class="form-select" required>
+                    {% for g in gestionnaires %}
+                    <option value="{{ g.id }}">{{ g.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-    <label for="bien_id">Bien</label>
-    <select id="bien_id" name="bien_id" required>
-        {% for b in biens %}
-        <option value="{{ b.id }}">{{ b.libelle }}</option>
-        {% endfor %}
-    </select>
+            <div class="mb-3">
+                <label for="bien_id" class="form-label">Bien</label>
+                <select id="bien_id" name="bien_id" class="form-select" required>
+                    {% for b in biens %}
+                    <option value="{{ b.id }}">{{ b.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-    <label for="periode">Période (mois concerné)</label>
-    <input type="date" id="periode" name="periode" required>
+            <div class="mb-3">
+                <label for="periode" class="form-label">Période (mois concerné)</label>
+                <input type="date" class="form-control" id="periode" name="periode" required>
+            </div>
 
-    <label for="fichier">Fichier PDF</label>
-    <input type="file" id="fichier" name="fichier" accept="application/pdf" required>
+            <div class="mb-4">
+                <label for="fichier" class="form-label">Fichier PDF</label>
+                <input type="file" class="form-control" id="fichier" name="fichier" accept="application/pdf" required>
+            </div>
 
-    <button type="submit">Importer</button>
-</form>
+            <button type="submit" class="btn btn-primary">Importer</button>
+        </form>
+    </div>
+</div>
 {% endblock %}
