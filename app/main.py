@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import BASE_DIR, SECRET_KEY, SESSION_COOKIE_HTTPS_ONLY
+from app.config import BASE_DIR, ROOT_PATH, SECRET_KEY, SESSION_COOKIE_HTTPS_ONLY
 from app.routers import (
     auth,
     biens,
@@ -57,16 +57,21 @@ async def redirection_si_non_authentifie(request: Request, exc: HTTPException):
     return await http_exception_handler(request, exc)
 
 
+# `app` ci-dessus reste l'application "nue" (routes sans préfixe) — c'est elle
+# que les tests importent et exercent directement (/login, /, ...).
+#
+# `app_prefixee` la monte sous ROOT_PATH : le préfixe /real-estate-manager/
+# fonctionne alors nativement, en local comme en production, sans dépendre
+# d'un reverse proxy qui le retirerait avant de transmettre la requête — le
+# futur reverse proxy de l'autre Raspberry Pi doit au contraire transmettre
+# le chemin tel quel (pas de réécriture de préfixe à configurer côté proxy).
+app_prefixee = FastAPI()
+app_prefixee.mount(ROOT_PATH, app)
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    from app.config import APP_HOST, APP_PORT, ROOT_PATH
+    from app.config import APP_HOST, APP_PORT
 
-    # --root-path informe uvicorn/Starlette du préfixe sous lequel le reverse
-    # proxy (sur l'autre Raspberry Pi) expose l'application, pour que les URLs
-    # générées (redirections, liens) soient correctes vues depuis l'extérieur.
-    # Le reverse proxy doit lui-même retirer ce préfixe avant de transmettre
-    # la requête ici. APP_HOST/APP_PORT viennent de .env (voir app/config.py) :
-    # 127.0.0.1 par défaut, à passer à 0.0.0.0 (ou l'IP LAN) en production pour
-    # que l'autre Pi puisse joindre cette appli sur le réseau.
-    uvicorn.run("app.main:app", host=APP_HOST, port=APP_PORT, root_path=ROOT_PATH)
+    uvicorn.run(app_prefixee, host=APP_HOST, port=APP_PORT)
