@@ -10,11 +10,15 @@ if TYPE_CHECKING:
 
 
 class LigneDepense(SQLModel, table=True):
-    """Dépense extraite d'un relevé de gestion — rattachée à une unité, ou au
-    bien entier si la dépense est commune (ex. ravalement d'un immeuble)."""
+    """Dépense rattachée à une unité, ou au bien entier si la dépense est
+    commune (ex. ravalement d'un immeuble). Soit extraite d'un relevé de
+    gestion (releve_gestion_id renseigné), soit saisie manuellement par le
+    propriétaire (releve_gestion_id = None — ex. taxe foncière, assurance
+    propriétaire : des dépenses qui ne passeront jamais par un compte-rendu
+    PDF d'un gestionnaire)."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    releve_gestion_id: int = Field(foreign_key="relevegestion.id")
+    releve_gestion_id: Optional[int] = Field(default=None, foreign_key="relevegestion.id")
     unite_locative_id: Optional[int] = Field(default=None, foreign_key="unitelocative.id")
     bien_id: Optional[int] = Field(default=None, foreign_key="bien.id")
     categorie: str
@@ -22,6 +26,6 @@ class LigneDepense(SQLModel, table=True):
     montant: float
     date: date
 
-    releve_gestion: "ReleveGestion" = Relationship(back_populates="lignes_depense")
+    releve_gestion: Optional["ReleveGestion"] = Relationship(back_populates="lignes_depense")
     unite_locative: Optional["UniteLocative"] = Relationship(back_populates="depenses")
     bien: Optional["Bien"] = Relationship(back_populates="depenses")
