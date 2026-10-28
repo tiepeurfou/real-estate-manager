@@ -266,3 +266,60 @@ def test_suppression_document_sans_lignes_rapprochees(client_connecte, session, 
 
 def test_suppression_document_inexistant(client_connecte):
     assert client_connecte.post("/documents/999/supprimer").status_code == 404
+
+
+def test_suppression_document_refusee_si_lignes_rapprochees(
+    client_connecte, session, dossier_documents_temporaire, monkeypatch, engine
+):
+    bien = _creer_bien(session)
+    gestionnaire = _creer_gestionnaire(session, nom="Locagestion")
+
+    def adaptateur_factice(nom):
+        class A:
+            def extraire(self, texte):
+                return ResultatExtraction(
+                    paiements=[
+                        LignePaiementExtraite(
+                            unite_libelle="Villiers-sur-Marne",
+                            periode=date(2024, 9, 1),
+                            montant_attendu=500,
+                            montant_percu=500,
+                            statut=StatutPaiement.PAYE,
+                        )
+                    ]
+                )
+
+        return A()
+
+    monkeypatch.setattr(releves_module, "obtenir_adaptateur", adaptateur_factice)
+
+    contenu = creer_pdf_bytes("Compte-rendu")
+    client_connecte.post(
+        "/documents",
+        data={"gestionnaire_id": str(gestionnaire.id), "bien_id": str(bien.id), "periode": "2024-09-01"},
+        files={"fichier": ("releve.pdf", contenu, "application/pdf")},
+    )
+
+    from sqlmodel import Session, select
+    from app.models import CompteBancaire, Rapprochement, VirementRecu
+    from app.models.enums import Banque
+
+    with Session(engine) as s:
+        paiement = s.exec(select(LignePaiement)).first()
+        compte = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
+        s.add(compte)
+        s.commit()
+        s.refresh(compte)
+        virement = VirementRecu(gestionnaire_id=gestionnaire.id, compte_bancaire_id=compte.id, montant=500, date_reception=date(2024, 10, 5))
+        s.add(virement)
+        s.commit()
+        s.refresh(virement)
+        rapprochement = Rapprochement(virement_recu_id=virement.id, ecart=0)
+        s.add(rapprochement)
+        s.commit()
+        s.refresh(rapprochement)
+        s.add(RapprochementLigne(rapprochement_id=rapprochement.id, ligne_paiement_id=paiement.id))
+        s.commit()
+
+    reponse = client_connecte.post("/documents/1/supprimer")
+    assert reponse.status_code == 409

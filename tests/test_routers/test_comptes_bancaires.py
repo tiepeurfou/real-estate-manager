@@ -24,6 +24,11 @@ def test_acces_sans_session_redirige(client):
     assert reponse.headers["location"].endswith("/login")
 
 
+def test_formulaire_nouveau_compte_accessible(client_connecte):
+    reponse = client_connecte.get("/comptes-bancaires/nouveau")
+    assert reponse.status_code == 200
+
+
 def test_creation_compte_bancaire(client_connecte, engine):
     reponse = client_connecte.post(
         "/comptes-bancaires",
@@ -46,6 +51,14 @@ def test_creation_compte_bancaire_banque_invalide(client_connecte):
         "/comptes-bancaires", data={"banque": "CIC", "libelle": "x"}
     )
     assert reponse.status_code == 400
+
+
+def test_formulaire_modification_compte_accessible(client_connecte, session):
+    compte = _creer_compte(session)
+
+    reponse = client_connecte.get(f"/comptes-bancaires/{compte.id}/modifier")
+    assert reponse.status_code == 200
+    assert compte.libelle in reponse.text
 
 
 def test_modification_compte_bancaire(client_connecte, session):

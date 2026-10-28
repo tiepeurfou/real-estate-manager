@@ -59,6 +59,27 @@ def test_formulaire_nouveau_pas_capture_par_la_route_detail(client_connecte):
     assert "Ajouter un gestionnaire" in reponse.text
 
 
+def test_liste_affiche_les_contacts_existants(client_connecte, session):
+    gestionnaire = _creer_gestionnaire(session)
+    session.add(ContactGestionnaire(gestionnaire_id=gestionnaire.id, type=TypeContact.EMAIL, valeur="contact@pergent.fr"))
+    session.add(ContactGestionnaire(gestionnaire_id=gestionnaire.id, type=TypeContact.TELEPHONE, valeur="0123456789"))
+    session.commit()
+
+    reponse = client_connecte.get("/gestionnaires")
+    assert "contact@pergent.fr" in reponse.text
+    assert "0123456789" in reponse.text
+
+
+def test_formulaire_modification_prefixe_les_contacts_existants(client_connecte, session):
+    gestionnaire = _creer_gestionnaire(session)
+    session.add(ContactGestionnaire(gestionnaire_id=gestionnaire.id, type=TypeContact.EMAIL, valeur="contact@pergent.fr"))
+    session.commit()
+
+    reponse = client_connecte.get(f"/gestionnaires/{gestionnaire.id}/modifier")
+    assert reponse.status_code == 200
+    assert "contact@pergent.fr" in reponse.text
+
+
 def test_creation_gestionnaire_sans_contact(client_connecte, engine):
     reponse = client_connecte.post("/gestionnaires", data={"nom": "ArthurImmo"}, follow_redirects=False)
     assert reponse.status_code == 303
@@ -159,7 +180,16 @@ def test_modification_gestionnaire(client_connecte, session):
 
 
 def test_modification_gestionnaire_inexistant(client_connecte):
+    assert client_connecte.get("/gestionnaires/999/modifier").status_code == 404
     assert client_connecte.post("/gestionnaires/999/modifier", data={"nom": "x"}).status_code == 404
+
+
+def test_suppression_gestionnaire_inexistant(client_connecte):
+    assert client_connecte.post("/gestionnaires/999/supprimer").status_code == 404
+
+
+def test_formulaire_mandat_nouveau_gestionnaire_inexistant(client_connecte):
+    assert client_connecte.get("/gestionnaires/999/mandats/nouveau").status_code == 404
 
 
 def test_suppression_gestionnaire_sans_donnees_liees(client_connecte, session):
@@ -447,3 +477,17 @@ def test_creation_mandat_date_invalide(client_connecte, session):
         data={"unite_locative_id": str(unite.id), "role": "gestion", "date_debut": "pas-une-date"},
     )
     assert reponse.status_code == 400
+
+
+def test_creation_mandat_date_vide_est_rejetee_proprement(client_connecte, session):
+    # "date_debut" est un champ Form(...) requis : une valeur vide est
+    # traitée par Starlette comme un champ absent (422 natif FastAPI),
+    # jamais comme une chaîne vide atteignant notre propre validation.
+    gestionnaire = _creer_gestionnaire(session)
+    _, unite = _creer_bien_avec_unite(session)
+
+    reponse = client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/mandats",
+        data={"unite_locative_id": str(unite.id), "role": "gestion", "date_debut": ""},
+    )
+    assert reponse.status_code == 422

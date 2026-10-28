@@ -17,7 +17,7 @@ from app.models import (
 )
 from app.models.enums import Banque, StatutExtraction, StatutPaiement, TypeBien
 from app.services.extraction.base import LigneDepenseExtraite, LignePaiementExtraite, ResultatExtraction
-from app.services.releves import enregistrer_releve, releve_a_des_lignes_rapprochees
+from app.services.releves import enregistrer_releve, releve_a_des_lignes_rapprochees, supprimer_lignes_du_releve
 from tests.aide_pdf import creer_pdf_bytes
 
 
@@ -52,6 +52,11 @@ class AdaptateurFactice:
 
     def extraire(self, texte: str) -> ResultatExtraction:
         return self._resultat
+
+
+class AdaptateurQuiExplose:
+    def extraire(self, texte: str) -> ResultatExtraction:
+        raise RuntimeError("pdf corrompu, texte illisible")
 
 
 def test_enregistrer_releve_stocke_le_fichier_et_cree_le_releve(session, dossier_documents_temporaire):
@@ -199,3 +204,89 @@ def test_releve_a_des_lignes_rapprochees(session, dossier_documents_temporaire, 
     session.commit()
 
     assert releve_a_des_lignes_rapprochees(session, releve.id) is True
+
+
+def test_releve_a_des_lignes_rapprochees_branche_depense(session, dossier_documents_temporaire, monkeypatch):
+    bien, unite, gestionnaire = _creer_bien_et_gestionnaire(session, nom_gestionnaire="Locagestion")
+
+    resultat = ResultatExtraction(
+        depenses=[
+            LigneDepenseExtraite(
+                categorie="Travaux", libelle="Plomberie", montant=80, date=date(2024, 9, 15), unite_libelle=None
+            )
+        ]
+    )
+    monkeypatch.setattr(releves_module, "obtenir_adaptateur", lambda nom: AdaptateurFactice(resultat))
+
+    contenu = creer_pdf_bytes("Compte-rendu")
+    releve = enregistrer_releve(session, gestionnaire, bien, date(2024, 9, 1), "releve.pdf", contenu)
+
+    assert releve_a_des_lignes_rapprochees(session, releve.id) is False
+
+    from sqlmodel import select
+
+    depense = session.exec(select(LigneDepense).where(LigneDepense.releve_gestion_id == releve.id)).first()
+
+    compte = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+
+    virement = VirementRecu(gestionnaire_id=gestionnaire.id, compte_bancaire_id=compte.id, montant=80, date_reception=date(2024, 10, 5))
+    session.add(virement)
+    session.commit()
+    session.refresh(virement)
+
+    rapprochement = Rapprochement(virement_recu_id=virement.id, ecart=0)
+    session.add(rapprochement)
+    session.commit()
+    session.refresh(rapprochement)
+
+    session.add(RapprochementLigne(rapprochement_id=rapprochement.id, ligne_depense_id=depense.id))
+    session.commit()
+
+    assert releve_a_des_lignes_rapprochees(session, releve.id) is True
+
+
+def test_supprimer_lignes_du_releve_supprime_paiements_et_depenses(session, dossier_documents_temporaire, monkeypatch):
+    bien, unite, gestionnaire = _creer_bien_et_gestionnaire(session, nom_gestionnaire="Locagestion")
+
+    resultat = ResultatExtraction(
+        paiements=[
+            LignePaiementExtraite(
+                unite_libelle=unite.libelle,
+                periode=date(2024, 9, 1),
+                montant_attendu=500,
+                montant_percu=500,
+                statut=StatutPaiement.PAYE,
+            )
+        ],
+        depenses=[
+            LigneDepenseExtraite(categorie="Travaux", libelle="Plomberie", montant=80, date=date(2024, 9, 15), unite_libelle=None)
+        ],
+    )
+    monkeypatch.setattr(releves_module, "obtenir_adaptateur", lambda nom: AdaptateurFactice(resultat))
+
+    contenu = creer_pdf_bytes("Compte-rendu")
+    releve = enregistrer_releve(session, gestionnaire, bien, date(2024, 9, 1), "releve.pdf", contenu)
+
+    from sqlmodel import select
+
+    assert len(session.exec(select(LignePaiement).where(LignePaiement.releve_gestion_id == releve.id)).all()) == 1
+    assert len(session.exec(select(LigneDepense).where(LigneDepense.releve_gestion_id == releve.id)).all()) == 1
+
+    supprimer_lignes_du_releve(session, releve.id)
+
+    assert session.exec(select(LignePaiement).where(LignePaiement.releve_gestion_id == releve.id)).all() == []
+    assert session.exec(select(LigneDepense).where(LigneDepense.releve_gestion_id == releve.id)).all() == []
+
+
+def test_traiter_extraction_erreur_inattendue_marque_erreur_sans_planter(session, dossier_documents_temporaire, monkeypatch):
+    bien, unite, gestionnaire = _creer_bien_et_gestionnaire(session, nom_gestionnaire="Locagestion")
+    monkeypatch.setattr(releves_module, "obtenir_adaptateur", lambda nom: AdaptateurQuiExplose())
+
+    contenu = creer_pdf_bytes("Compte-rendu")
+    releve = enregistrer_releve(session, gestionnaire, bien, date(2024, 9, 1), "releve.pdf", contenu)
+
+    assert releve.statut_extraction == StatutExtraction.ERREUR_EXTRACTION
+    assert "pdf corrompu" in releve.erreur_extraction_message

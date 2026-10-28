@@ -140,6 +140,37 @@ def test_creation_occupation_date_invalide(client_connecte, session):
     assert reponse.status_code == 400
 
 
+def test_creation_occupation_date_vide_est_rejetee_proprement(client_connecte, session):
+    # "date_entree" est un champ Form(...) requis : une valeur vide est
+    # traitée par Starlette comme un champ absent (422 natif FastAPI).
+    _, unite = _creer_bien_avec_unite(session)
+    locataire = _creer_locataire(session)
+
+    reponse = client_connecte.post(
+        f"/unites/{unite.id}/occupations",
+        data={"locataire_ids": [str(locataire.id)], "date_entree": "", "loyer_mensuel_hc": "500"},
+    )
+    assert reponse.status_code == 422
+
+
+def test_creation_occupation_locataire_inexistant(client_connecte, session, engine):
+    _, unite = _creer_bien_avec_unite(session)
+
+    reponse = client_connecte.post(
+        f"/unites/{unite.id}/occupations",
+        data={"locataire_ids": ["999"], "date_entree": "2024-02-01", "loyer_mensuel_hc": "500"},
+    )
+    assert reponse.status_code == 404
+
+    from sqlmodel import Session, select
+
+    # Un locataire invalide ne doit laisser aucune occupation orpheline
+    # derrière lui : sinon la ré-attribution de cette unité serait bloquée
+    # par un faux 409 "déjà occupée".
+    with Session(engine) as s:
+        assert s.exec(select(Occupation).where(Occupation.unite_locative_id == unite.id)).all() == []
+
+
 def test_creation_occupation_unite_inexistante(client_connecte, session):
     locataire = _creer_locataire(session)
 

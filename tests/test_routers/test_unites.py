@@ -128,5 +128,82 @@ def test_suppression_unite_refusee_si_occupation_liee(client_connecte, session):
     assert reponse.status_code == 409
 
 
+def test_suppression_unite_refusee_si_mandat_gestion_lie(client_connecte, session):
+    from app.models import Gestionnaire, MandatGestion
+    from app.models.enums import RoleMandat
+
+    bien, unites = _creer_immeuble_avec_unites(session, nb_unites=1)
+    unite = unites[0]
+
+    gestionnaire = Gestionnaire(nom="Locagestion")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+    session.add(
+        MandatGestion(
+            unite_locative_id=unite.id, gestionnaire_id=gestionnaire.id, role=RoleMandat.GESTION, date_debut=date(2024, 1, 1)
+        )
+    )
+    session.commit()
+
+    reponse = client_connecte.post(f"/unites/{unite.id}/supprimer")
+    assert reponse.status_code == 409
+
+
+def test_suppression_unite_refusee_si_ligne_paiement_liee(client_connecte, session):
+    from app.models import Gestionnaire, LignePaiement, ReleveGestion
+    from app.models.enums import StatutExtraction, StatutPaiement
+    from datetime import datetime, timezone
+
+    bien, unites = _creer_immeuble_avec_unites(session, nb_unites=1)
+    unite = unites[0]
+
+    gestionnaire = Gestionnaire(nom="Locagestion")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+    releve = ReleveGestion(
+        gestionnaire_id=gestionnaire.id,
+        bien_id=bien.id,
+        periode=date(2024, 9, 1),
+        date_reception=datetime.now(timezone.utc),
+        chemin_fichier_pdf="x.pdf",
+        hash_fichier="hash-unite-test",
+        statut_extraction=StatutExtraction.TRAITE_OK,
+    )
+    session.add(releve)
+    session.commit()
+    session.refresh(releve)
+    session.add(
+        LignePaiement(
+            releve_gestion_id=releve.id,
+            unite_locative_id=unite.id,
+            periode=date(2024, 9, 1),
+            montant_attendu=500,
+            montant_percu=500,
+            statut=StatutPaiement.PAYE,
+        )
+    )
+    session.commit()
+
+    reponse = client_connecte.post(f"/unites/{unite.id}/supprimer")
+    assert reponse.status_code == 409
+
+
+def test_suppression_unite_refusee_si_ligne_depense_liee(client_connecte, session):
+    from app.models import LigneDepense
+
+    bien, unites = _creer_immeuble_avec_unites(session, nb_unites=1)
+    unite = unites[0]
+
+    session.add(
+        LigneDepense(unite_locative_id=unite.id, categorie="Travaux", libelle="x", montant=100, date=date(2024, 9, 1))
+    )
+    session.commit()
+
+    reponse = client_connecte.post(f"/unites/{unite.id}/supprimer")
+    assert reponse.status_code == 409
+
+
 def test_suppression_unite_inexistante(client_connecte):
     assert client_connecte.post("/unites/999/supprimer").status_code == 404

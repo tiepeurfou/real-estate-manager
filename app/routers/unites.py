@@ -214,6 +214,17 @@ def occupation_creer(
             status_code=400,
         )
 
+    # Valider tous les locataires avant de créer quoi que ce soit : sinon un
+    # id invalide laisserait une Occupation orpheline (active, sans aucun
+    # locataire lié) déjà committée, qui bloquerait silencieusement toute
+    # future attribution de cette unité (409 "déjà occupée").
+    locataires_selectionnes = []
+    for locataire_id in locataire_ids:
+        locataire = session.get(Locataire, int(locataire_id))
+        if locataire is None:
+            raise HTTPException(status_code=404, detail=f"Locataire {locataire_id} introuvable")
+        locataires_selectionnes.append(locataire)
+
     occupation = Occupation(
         unite_locative_id=unite_id,
         date_entree=date_entree_parsee,
@@ -226,10 +237,7 @@ def occupation_creer(
     session.commit()
     session.refresh(occupation)
 
-    for locataire_id in locataire_ids:
-        locataire = session.get(Locataire, int(locataire_id))
-        if locataire is None:
-            raise HTTPException(status_code=404, detail=f"Locataire {locataire_id} introuvable")
+    for locataire in locataires_selectionnes:
         session.add(OccupationLocataire(occupation_id=occupation.id, locataire_id=locataire.id))
     session.commit()
 

@@ -171,6 +171,23 @@ def test_creation_virement_date_invalide(client_connecte, session):
     assert reponse.status_code == 400
 
 
+def test_creation_virement_date_vide_est_rejetee_proprement(client_connecte, session):
+    # "date_reception" est un champ Form(...) requis : une valeur vide est
+    # traitée par Starlette comme un champ absent (422 natif FastAPI).
+    ctx = _creer_contexte(session)
+
+    reponse = client_connecte.post(
+        "/virements",
+        data={
+            "gestionnaire_id": str(ctx["gestionnaire"].id),
+            "compte_bancaire_id": str(ctx["compte"].id),
+            "montant": "450",
+            "date_reception": "",
+        },
+    )
+    assert reponse.status_code == 422
+
+
 def test_detail_virement_inexistant(client_connecte):
     assert client_connecte.get("/virements/999").status_code == 404
 
@@ -443,3 +460,34 @@ def test_suppression_virement_refusee_si_rapproche(client_connecte, session):
 
 def test_suppression_virement_inexistant(client_connecte):
     assert client_connecte.post("/virements/999/supprimer").status_code == 404
+
+
+def test_detail_virement_gestionnaire_sans_aucun_releve(client_connecte, session):
+    # _lignes_candidates doit renvoyer ([], []) sans planter quand le
+    # gestionnaire n'a encore aucun ReleveGestion (ex. juste créé, avant
+    # tout import de compte-rendu).
+    gestionnaire = Gestionnaire(nom="ArthurImmo")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+
+    compte = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+
+    virement = VirementRecu(gestionnaire_id=gestionnaire.id, compte_bancaire_id=compte.id, montant=500, date_reception=date(2024, 10, 5))
+    session.add(virement)
+    session.commit()
+    session.refresh(virement)
+
+    reponse = client_connecte.get(f"/virements/{virement.id}")
+    assert reponse.status_code == 200
+
+
+def test_rapprocher_virement_inexistant(client_connecte):
+    assert client_connecte.post("/virements/999/rapprocher", data={"paiement_ids": []}).status_code == 404
+
+
+def test_supprimer_rapprochement_virement_inexistant(client_connecte):
+    assert client_connecte.post("/virements/999/rapprochement/supprimer").status_code == 404

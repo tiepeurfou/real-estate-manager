@@ -278,6 +278,19 @@ def test_creation_depense_date_invalide(client_connecte, session):
     assert reponse.status_code == 400
 
 
+def test_creation_depense_date_vide_est_rejetee_proprement(client_connecte, session):
+    # "date" est un champ Form(...) requis : Starlette traite une valeur
+    # vide comme un champ absent, donc FastAPI renvoie 422 avant même
+    # d'atteindre notre propre validation. On vérifie juste l'absence de 500.
+    bien, _ = _creer_bien_avec_unite(session)
+
+    reponse = client_connecte.post(
+        "/depenses",
+        data={"bien_id": str(bien.id), "categorie": "Travaux", "libelle": "x", "montant": "100", "date": ""},
+    )
+    assert reponse.status_code == 422
+
+
 def test_suppression_depense_manuelle(client_connecte, session, engine):
     bien, _ = _creer_bien_avec_unite(session)
     ligne = LigneDepense(

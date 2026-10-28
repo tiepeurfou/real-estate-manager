@@ -244,6 +244,7 @@ def test_modification_bien(client_connecte, session):
 
 
 def test_modification_bien_inexistant(client_connecte):
+    assert client_connecte.get("/biens/999/modifier").status_code == 404
     reponse = client_connecte.post(
         "/biens/999/modifier",
         data={
@@ -254,6 +255,42 @@ def test_modification_bien_inexistant(client_connecte):
         },
     )
     assert reponse.status_code == 404
+
+
+def test_formulaire_modification_bien_accessible(client_connecte, session):
+    bien = _creer_bien_immeuble(session)
+
+    reponse = client_connecte.get(f"/biens/{bien.id}/modifier")
+    assert reponse.status_code == 200
+    assert bien.libelle in reponse.text
+
+
+def test_ajout_unite_formulaire_bien_inexistant(client_connecte):
+    assert client_connecte.get("/biens/999/unites/nouvelle").status_code == 404
+
+
+def test_suppression_bien_inexistant(client_connecte):
+    assert client_connecte.post("/biens/999/supprimer").status_code == 404
+
+
+def test_modification_bien_date_acquisition_invalide(client_connecte, session):
+    bien = _creer_bien_immeuble(session)
+
+    reponse = client_connecte.post(
+        f"/biens/{bien.id}/modifier",
+        data={
+            "libelle": bien.libelle,
+            "adresse_rue": bien.adresse_rue,
+            "adresse_code_postal": bien.adresse_code_postal,
+            "adresse_ville": bien.adresse_ville,
+            "date_acquisition": "pas-une-date",
+        },
+    )
+    assert reponse.status_code == 400
+
+
+def test_ajout_unite_bien_inexistant(client_connecte):
+    assert client_connecte.post("/biens/999/unites", data={"libelle": "x"}).status_code == 404
 
 
 def test_suppression_bien_sans_donnees_liees(client_connecte, session):
@@ -283,6 +320,61 @@ def test_suppression_bien_refusee_si_occupation_liee(client_connecte, session):
     reponse = client_connecte.post(f"/biens/{bien.id}/supprimer")
     assert reponse.status_code == 409
     assert client_connecte.get(f"/biens/{bien.id}").status_code == 200
+
+
+def test_suppression_bien_avec_unites_supprime_la_cascade(client_connecte, session, engine):
+    bien = _creer_bien_immeuble(session)
+    session.add(UniteLocative(bien_id=bien.id, libelle="Appt 1"))
+    session.add(UniteLocative(bien_id=bien.id, libelle="Appt 2"))
+    session.commit()
+
+    reponse = client_connecte.post(f"/biens/{bien.id}/supprimer", follow_redirects=False)
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        assert s.get(Bien, bien.id) is None
+        assert s.exec(select(UniteLocative).where(UniteLocative.bien_id == bien.id)).all() == []
+
+
+def test_suppression_bien_refusee_si_ligne_depense_liee(client_connecte, session):
+    from app.models import LigneDepense
+
+    bien = _creer_bien_immeuble(session)
+    session.add(
+        LigneDepense(bien_id=bien.id, categorie="Taxe foncière", libelle="Taxe", montant=1200, date=date(2024, 10, 1))
+    )
+    session.commit()
+
+    reponse = client_connecte.post(f"/biens/{bien.id}/supprimer")
+    assert reponse.status_code == 409
+
+
+def test_suppression_bien_refusee_si_mandat_gestion_lie_sans_occupation(client_connecte, session):
+    from app.models import MandatGestion
+    from app.models.enums import RoleMandat
+
+    bien = _creer_bien_immeuble(session)
+    unite = UniteLocative(bien_id=bien.id, libelle="Appt 1")
+    session.add(unite)
+    session.commit()
+    session.refresh(unite)
+
+    gestionnaire = Gestionnaire(nom="Locagestion")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+
+    session.add(
+        MandatGestion(
+            unite_locative_id=unite.id, gestionnaire_id=gestionnaire.id, role=RoleMandat.GESTION, date_debut=date(2024, 1, 1)
+        )
+    )
+    session.commit()
+
+    reponse = client_connecte.post(f"/biens/{bien.id}/supprimer")
+    assert reponse.status_code == 409
 
 
 def test_suppression_bien_refusee_si_releve_gestion_lie(client_connecte, session):

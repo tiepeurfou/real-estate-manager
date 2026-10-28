@@ -176,6 +176,53 @@ def test_importer_periode_invalide(client_connecte, session, monkeypatch, dossie
         assert reponse.status_code == 400
 
 
+def test_importer_periode_vide_est_rejetee_proprement(client_connecte, session, monkeypatch, dossier_documents_temporaire):
+    # "periode" est un champ Form(...) requis : une valeur vide est traitée
+    # par Starlette comme un champ absent (422 natif FastAPI), jamais
+    # comme une chaîne vide atteignant notre propre validation.
+    bien, gestionnaire = _creer_bien_et_gestionnaire(session)
+    messages = {"1": _email_avec_pdf()}
+
+    with FauxServeurImap(messages, "test@exemple.fr", "motdepasse") as serveur:
+        _pointer_vers(monkeypatch, serveur)
+        reponse = client_connecte.post(
+            "/ingestion-mail/importer",
+            data={
+                "message_uid": "1",
+                "nom_piece_jointe": "releve.pdf",
+                "gestionnaire_id": str(gestionnaire.id),
+                "bien_id": str(bien.id),
+                "periode": "",
+            },
+        )
+        assert reponse.status_code == 422
+
+
+def test_importer_piece_jointe_disparue_entre_le_listing_et_l_import(
+    client_connecte, session, monkeypatch, dossier_documents_temporaire
+):
+    # Scénario : le mail a été déplacé/supprimé de la boîte entre le moment
+    # où l'utilisateur a vu la liste et le clic "importer". Le faux serveur
+    # ne connaît plus ce message_uid : recuperer_piece_jointe() lève un
+    # ValueError explicite, que la route traduit en 400 (pas de 500).
+    bien, gestionnaire = _creer_bien_et_gestionnaire(session)
+    messages = {"1": _email_avec_pdf()}
+
+    with FauxServeurImap(messages, "test@exemple.fr", "motdepasse") as serveur:
+        _pointer_vers(monkeypatch, serveur)
+        reponse = client_connecte.post(
+            "/ingestion-mail/importer",
+            data={
+                "message_uid": "999",
+                "nom_piece_jointe": "releve.pdf",
+                "gestionnaire_id": str(gestionnaire.id),
+                "bien_id": str(bien.id),
+                "periode": "2024-09-01",
+            },
+        )
+        assert reponse.status_code == 400
+
+
 def test_importer_deux_fois_le_meme_contenu_est_refuse(
     client_connecte, session, monkeypatch, dossier_documents_temporaire
 ):

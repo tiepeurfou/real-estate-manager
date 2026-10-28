@@ -86,6 +86,24 @@ def test_detail_locataire_inexistant(client_connecte):
     assert client_connecte.get("/locataires/999").status_code == 404
 
 
+def test_formulaire_modification_locataire_accessible(client_connecte, session):
+    locataire = _creer_locataire(session)
+
+    reponse = client_connecte.get(f"/locataires/{locataire.id}/modifier")
+    assert reponse.status_code == 200
+    assert locataire.nom in reponse.text
+
+
+def test_modification_locataire_garantie_invalide(client_connecte, session):
+    locataire = _creer_locataire(session)
+
+    reponse = client_connecte.post(
+        f"/locataires/{locataire.id}/modifier",
+        data={"nom": "Durand", "prenom": "Jean", "type_garantie": "pas-une-garantie"},
+    )
+    assert reponse.status_code == 400
+
+
 def test_modification_locataire(client_connecte, session):
     locataire = _creer_locataire(session)
 

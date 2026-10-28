@@ -147,6 +147,22 @@ def test_modifier_mandat_date_fin_avant_date_debut(client_connecte, session):
     assert reponse.status_code == 400
 
 
+def test_modifier_mandat_date_debut_vide_est_rejetee_proprement(client_connecte, session):
+    # "date_debut" est un champ Form(...) requis : une valeur vide est
+    # traitée par Starlette comme un champ absent (422 natif FastAPI).
+    mandat = _creer_mandat(session)
+
+    reponse = client_connecte.post(
+        f"/mandats/{mandat.id}/modifier",
+        data={
+            "unite_locative_id": str(mandat.unite_locative_id),
+            "role": "mise_en_location",
+            "date_debut": "",
+        },
+    )
+    assert reponse.status_code == 422
+
+
 def test_modifier_mandat_role_invalide(client_connecte, session):
     mandat = _creer_mandat(session)
 
@@ -209,6 +225,16 @@ def test_terminer_mandat_date_fin_avant_date_debut(client_connecte, session):
 
     reponse = client_connecte.post(f"/mandats/{mandat.id}/terminer", data={"date_fin": "2023-12-31"})
     assert reponse.status_code == 400
+
+
+def test_terminer_mandat_date_fin_vide_est_rejetee_proprement(client_connecte, session):
+    # "date_fin" est un champ Form(...) requis dans cette route précise
+    # (contrairement à mandat_modifier où il est optionnel) : une valeur
+    # vide est traitée par Starlette comme un champ absent (422 natif).
+    mandat = _creer_mandat(session)
+
+    reponse = client_connecte.post(f"/mandats/{mandat.id}/terminer", data={"date_fin": ""})
+    assert reponse.status_code == 422
 
 
 def test_terminer_mandat_inexistant(client_connecte):

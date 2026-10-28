@@ -240,6 +240,176 @@ def test_modification_depense_recurrente(client_connecte, session, engine):
         assert modifie.montant == 475.0
 
 
+def test_modification_depense_recurrente_bien_inexistant(client_connecte, session):
+    bien = _creer_bien(session)
+    template = DepenseRecurrente(
+        bien_id=bien.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": "999",
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "450",
+            "frequence": "mensuelle",
+            "date_debut": "2024-01-05",
+        },
+    )
+    assert reponse.status_code == 404
+
+
+def test_modification_depense_recurrente_unite_n_appartient_pas_au_bien(client_connecte, session):
+    bien1, _ = _creer_bien_avec_unite(session, libelle_bien="Immeuble Sedan")
+    _, unite2 = _creer_bien_avec_unite(session, libelle_bien="Immeuble Charleville")
+    template = DepenseRecurrente(
+        bien_id=bien1.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": str(bien1.id),
+            "unite_locative_id": str(unite2.id),
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "450",
+            "frequence": "mensuelle",
+            "date_debut": "2024-01-05",
+        },
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_depense_recurrente_unite_inexistante(client_connecte, session):
+    bien = _creer_bien(session)
+    template = DepenseRecurrente(
+        bien_id=bien.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": str(bien.id),
+            "unite_locative_id": "999",
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "450",
+            "frequence": "mensuelle",
+            "date_debut": "2024-01-05",
+        },
+    )
+    assert reponse.status_code == 404
+
+
+def test_modification_depense_recurrente_montant_invalide(client_connecte, session):
+    bien = _creer_bien(session)
+    template = DepenseRecurrente(
+        bien_id=bien.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": str(bien.id),
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "abc",
+            "frequence": "mensuelle",
+            "date_debut": "2024-01-05",
+        },
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_depense_recurrente_frequence_invalide(client_connecte, session):
+    bien = _creer_bien(session)
+    template = DepenseRecurrente(
+        bien_id=bien.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": str(bien.id),
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "450",
+            "frequence": "hebdomadaire",
+            "date_debut": "2024-01-05",
+        },
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_depense_recurrente_date_fin_avant_date_debut(client_connecte, session):
+    bien = _creer_bien(session)
+    template = DepenseRecurrente(
+        bien_id=bien.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": str(bien.id),
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "450",
+            "frequence": "mensuelle",
+            "date_debut": "2024-06-01",
+            "date_fin": "2024-01-01",
+        },
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_depense_recurrente_date_debut_vide_est_rejetee_proprement(client_connecte, session):
+    # Starlette traite un champ Form(...) envoyé avec une valeur vide comme
+    # absent (pas comme une chaîne vide) : FastAPI renvoie un 422 natif avant
+    # même d'entrer dans la route, sans jamais atteindre le ValueError
+    # "obligatoire" du code. On vérifie juste que ça échoue proprement plutôt
+    # que de planter (pas de 500).
+    bien = _creer_bien(session)
+    template = DepenseRecurrente(
+        bien_id=bien.id, categorie="Crédit immobilier", libelle="Crédit Sedan", montant=450.0, frequence="mensuelle", date_debut=date(2024, 1, 5)
+    )
+    session.add(template)
+    session.commit()
+    session.refresh(template)
+
+    reponse = client_connecte.post(
+        f"/depenses-recurrentes/{template.id}/modifier",
+        data={
+            "bien_id": str(bien.id),
+            "categorie": "Crédit immobilier",
+            "libelle": "x",
+            "montant": "450",
+            "frequence": "mensuelle",
+            "date_debut": "",
+        },
+    )
+    assert reponse.status_code == 422
+
+
 def test_modification_depense_recurrente_inexistante(client_connecte):
     reponse = client_connecte.post(
         "/depenses-recurrentes/999/modifier",
