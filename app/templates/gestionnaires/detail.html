@@ -8,7 +8,13 @@
 <div class="page-titre">
     <div>
         <h1 class="h3 mb-1">{{ gestionnaire.nom }}</h1>
-        <p class="text-secondary mb-0">{{ gestionnaire.contact_email or "—" }} · {{ gestionnaire.contact_tel or "—" }}</p>
+        <p class="text-secondary mb-0">
+            {% for contact in contacts %}
+            <span class="badge text-bg-light border me-1">{{ contact.type.value }} : {{ contact.valeur }}</span>
+            {% else %}
+            —
+            {% endfor %}
+        </p>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ url_for('gestionnaire_modifier_formulaire', gestionnaire_id=gestionnaire.id) }}" class="btn btn-outline-secondary">Modifier</a>

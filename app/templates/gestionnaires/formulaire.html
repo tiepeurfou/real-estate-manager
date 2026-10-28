@@ -11,23 +11,29 @@
             <div class="alert alert-danger">{{ erreur }}</div>
         {% endif %}
 
-        <form method="post" action="{{ url_for('gestionnaire_modifier', gestionnaire_id=gestionnaire.id) if gestionnaire else url_for('gestionnaire_creer') }}">
+        <form method="post" action="{{ url_for('gestionnaire_modifier', gestionnaire_id=gestionnaire.id) if gestionnaire else url_for('gestionnaire_creer') }}"
+              x-data='{ contacts: {{ contacts_json | safe }} }'>
             <div class="mb-3">
                 <label for="nom" class="form-label">Nom</label>
                 <input type="text" class="form-control" id="nom" name="nom" value="{{ gestionnaire.nom if gestionnaire else '' }}" required>
             </div>
 
-            <div class="mb-3">
-                <label for="contact_email" class="form-label">Email de contact</label>
-                <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ gestionnaire.contact_email if gestionnaire and gestionnaire.contact_email else '' }}">
-            </div>
+            <label class="form-label">Contacts (emails, téléphones)</label>
+            <template x-for="(contact, index) in contacts" :key="index">
+                <div class="d-flex gap-2 mb-2">
+                    <select x-model="contact.type" name="contact_type" class="form-select" style="max-width: 9rem;">
+                        <option value="email">Email</option>
+                        <option value="telephone">Téléphone</option>
+                    </select>
+                    <input type="text" x-model="contact.valeur" name="contact_valeur" class="form-control" placeholder="valeur">
+                    <button type="button" class="btn btn-outline-danger" x-on:click="contacts.splice(index, 1)">&times;</button>
+                </div>
+            </template>
+            <button type="button" class="btn btn-sm btn-outline-secondary mb-4" x-on:click="contacts.push({type: 'email', valeur: ''})">+ Ajouter un contact</button>
 
-            <div class="mb-4">
-                <label for="contact_tel" class="form-label">Téléphone de contact</label>
-                <input type="text" class="form-control" id="contact_tel" name="contact_tel" value="{{ gestionnaire.contact_tel if gestionnaire and gestionnaire.contact_tel else '' }}">
+            <div>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
             </div>
-
-            <button type="submit" class="btn btn-primary">Enregistrer</button>
         </form>
     </div>
 </div>

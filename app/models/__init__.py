@@ -4,6 +4,7 @@
 from app.models.bien import Bien
 from app.models.candidat_courriel_traite import CandidatCourrielTraite
 from app.models.compte_bancaire import CompteBancaire
+from app.models.contact_gestionnaire import ContactGestionnaire
 from app.models.gestionnaire import Gestionnaire
 from app.models.ligne_depense import LigneDepense
 from app.models.ligne_paiement import LignePaiement
@@ -22,6 +23,7 @@ __all__ = [
     "Bien",
     "CandidatCourrielTraite",
     "CompteBancaire",
+    "ContactGestionnaire",
     "Gestionnaire",
     "LigneDepense",
     "LignePaiement",

@@ -15,14 +15,15 @@
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
-                <tr><th>Nom</th><th>Email</th><th>Téléphone</th></tr>
+                <tr><th>Nom</th><th>Emails</th><th>Téléphones</th></tr>
             </thead>
             <tbody>
                 {% for gestionnaire in gestionnaires %}
+                {% set contacts = contacts_par_gestionnaire.get(gestionnaire.id, []) %}
                 <tr>
                     <td><a href="{{ url_for('gestionnaire_detail', gestionnaire_id=gestionnaire.id) }}" class="fw-semibold">{{ gestionnaire.nom }}</a></td>
-                    <td>{{ gestionnaire.contact_email or "—" }}</td>
-                    <td>{{ gestionnaire.contact_tel or "—" }}</td>
+                    <td>{{ contacts | selectattr("type.value", "equalto", "email") | map(attribute="valeur") | join(", ") or "—" }}</td>
+                    <td>{{ contacts | selectattr("type.value", "equalto", "telephone") | map(attribute="valeur") | join(", ") or "—" }}</td>
                 </tr>
                 {% else %}
                 <tr><td colspan="3" class="text-secondary text-center py-4">Aucun gestionnaire enregistré.</td></tr>

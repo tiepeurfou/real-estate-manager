@@ -1,7 +1,16 @@
 from datetime import date, datetime, timezone
 
-from app.models import Bien, CompteBancaire, Gestionnaire, MandatGestion, ReleveGestion, UniteLocative, VirementRecu
-from app.models.enums import Banque, RoleMandat, StatutExtraction, TypeBien
+from app.models import (
+    Bien,
+    CompteBancaire,
+    ContactGestionnaire,
+    Gestionnaire,
+    MandatGestion,
+    ReleveGestion,
+    UniteLocative,
+    VirementRecu,
+)
+from app.models.enums import Banque, RoleMandat, StatutExtraction, TypeBien, TypeContact
 
 
 def _creer_gestionnaire(session, nom="Pergent Immobilier") -> Gestionnaire:
@@ -50,10 +59,8 @@ def test_formulaire_nouveau_pas_capture_par_la_route_detail(client_connecte):
     assert "Ajouter un gestionnaire" in reponse.text
 
 
-def test_creation_gestionnaire(client_connecte, engine):
-    reponse = client_connecte.post(
-        "/gestionnaires", data={"nom": "ArthurImmo", "contact_email": "contact@arthurimmo.fr"}, follow_redirects=False
-    )
+def test_creation_gestionnaire_sans_contact(client_connecte, engine):
+    reponse = client_connecte.post("/gestionnaires", data={"nom": "ArthurImmo"}, follow_redirects=False)
     assert reponse.status_code == 303
 
     from sqlmodel import Session, select
@@ -61,7 +68,77 @@ def test_creation_gestionnaire(client_connecte, engine):
     with Session(engine) as s:
         gestionnaire = s.exec(select(Gestionnaire).where(Gestionnaire.nom == "ArthurImmo")).first()
         assert gestionnaire is not None
-        assert gestionnaire.contact_email == "contact@arthurimmo.fr"
+
+
+def test_creation_gestionnaire_avec_plusieurs_contacts(client_connecte, engine):
+    reponse = client_connecte.post(
+        "/gestionnaires",
+        data={
+            "nom": "Locagestion",
+            "contact_type": ["email", "email", "telephone"],
+            "contact_valeur": ["agence@locagestion.fr", "urgences@locagestion.fr", "0102030405"],
+        },
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        gestionnaire = s.exec(select(Gestionnaire).where(Gestionnaire.nom == "Locagestion")).first()
+        contacts = s.exec(select(ContactGestionnaire).where(ContactGestionnaire.gestionnaire_id == gestionnaire.id)).all()
+        assert len(contacts) == 3
+        emails = {c.valeur for c in contacts if c.type == TypeContact.EMAIL}
+        assert emails == {"agence@locagestion.fr", "urgences@locagestion.fr"}
+        telephones = {c.valeur for c in contacts if c.type == TypeContact.TELEPHONE}
+        assert telephones == {"0102030405"}
+
+
+def test_creation_gestionnaire_ignore_les_contacts_vides(client_connecte, session, engine):
+    client_connecte.post(
+        "/gestionnaires",
+        data={"nom": "ArthurImmo", "contact_type": ["email"], "contact_valeur": [""]},
+    )
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        gestionnaire = s.exec(select(Gestionnaire).where(Gestionnaire.nom == "ArthurImmo")).first()
+        contacts = s.exec(select(ContactGestionnaire).where(ContactGestionnaire.gestionnaire_id == gestionnaire.id)).all()
+        assert contacts == []
+
+
+def test_modification_gestionnaire_remplace_les_contacts(client_connecte, session, engine):
+    gestionnaire = _creer_gestionnaire(session)
+    session.add(ContactGestionnaire(gestionnaire_id=gestionnaire.id, type=TypeContact.EMAIL, valeur="ancien@exemple.fr"))
+    session.commit()
+
+    client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/modifier",
+        data={"nom": gestionnaire.nom, "contact_type": ["telephone"], "contact_valeur": ["0600000000"]},
+    )
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        contacts = s.exec(select(ContactGestionnaire).where(ContactGestionnaire.gestionnaire_id == gestionnaire.id)).all()
+        assert len(contacts) == 1
+        assert contacts[0].type == TypeContact.TELEPHONE
+        assert contacts[0].valeur == "0600000000"
+
+
+def test_suppression_gestionnaire_supprime_ses_contacts(client_connecte, session, engine):
+    gestionnaire = _creer_gestionnaire(session)
+    session.add(ContactGestionnaire(gestionnaire_id=gestionnaire.id, type=TypeContact.EMAIL, valeur="a@b.fr"))
+    session.commit()
+
+    reponse = client_connecte.post(f"/gestionnaires/{gestionnaire.id}/supprimer", follow_redirects=False)
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        assert s.exec(select(ContactGestionnaire)).all() == []
 
 
 def test_detail_gestionnaire_inexistant(client_connecte):
@@ -292,6 +369,42 @@ def test_gestion_complete_se_traduit_par_deux_mandats(client_connecte, session, 
             for m in s.exec(select(MandatGestion).where(MandatGestion.gestionnaire_id == gestionnaire.id)).all()
         }
         assert roles == {RoleMandat.MISE_EN_LOCATION, RoleMandat.GESTION}
+
+
+def test_raccourci_gestion_complete_cree_les_deux_mandats_en_une_fois(client_connecte, session, engine):
+    """Le raccourci "gestion_complete" du formulaire n'est pas une 3e valeur
+    de RoleMandat : il crée les deux mandats en une seule soumission."""
+    gestionnaire = _creer_gestionnaire(session, nom="ArthurImmo")
+    _, unite = _creer_bien_avec_unite(session)
+    compte = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+
+    reponse = client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/mandats",
+        data={
+            "unite_locative_id": str(unite.id),
+            "role": "gestion_complete",
+            "date_debut": "2024-01-01",
+            "compte_bancaire_id": str(compte.id),
+        },
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        mandats = s.exec(select(MandatGestion).where(MandatGestion.gestionnaire_id == gestionnaire.id)).all()
+        assert len(mandats) == 2
+        roles = {m.role for m in mandats}
+        assert roles == {RoleMandat.MISE_EN_LOCATION, RoleMandat.GESTION}
+
+        mandat_gestion = next(m for m in mandats if m.role == RoleMandat.GESTION)
+        mandat_mise_en_location = next(m for m in mandats if m.role == RoleMandat.MISE_EN_LOCATION)
+        assert mandat_gestion.compte_bancaire_id == compte.id
+        assert mandat_mise_en_location.compte_bancaire_id is None
 
 
 def test_creation_mandat_gestionnaire_inexistant(client_connecte, session):

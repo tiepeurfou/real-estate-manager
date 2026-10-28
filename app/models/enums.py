@@ -54,3 +54,8 @@ class StatutPaiement(str, Enum):
 class StatutCandidatCourriel(str, Enum):
     IMPORTE = "importe"
     IGNORE = "ignore"
+
+
+class TypeContact(str, Enum):
+    EMAIL = "email"
+    TELEPHONE = "telephone"

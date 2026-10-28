@@ -28,7 +28,9 @@
                     {% for r in roles %}
                     <option value="{{ r.value }}">{{ r.value }}</option>
                     {% endfor %}
+                    <option value="gestion_complete">gestion complète (mise en location + gestion)</option>
                 </select>
+                <div class="form-text">"Gestion complète" crée les deux mandats d'un coup pour ce gestionnaire sur cette unité — pas une troisième valeur de rôle, juste un raccourci.</div>
             </div>
 
             <div class="mb-3">

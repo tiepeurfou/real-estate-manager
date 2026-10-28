@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
@@ -6,6 +8,7 @@ from app.database import get_session
 from app.models import (
     Bien,
     CompteBancaire,
+    ContactGestionnaire,
     Gestionnaire,
     MandatGestion,
     ReleveGestion,
@@ -13,7 +16,7 @@ from app.models import (
     Utilisateur,
     VirementRecu,
 )
-from app.models.enums import RoleMandat
+from app.models.enums import RoleMandat, TypeContact
 from app.security import get_current_user
 from app.services.formulaires import parser_date_optionnelle, parser_int_optionnel
 from app.templating import templates
@@ -31,6 +34,34 @@ def _gestionnaire_a_des_donnees_liees(session: Session, gestionnaire: Gestionnai
     return False
 
 
+def _contacts_de(session: Session, gestionnaire_id: int) -> list[ContactGestionnaire]:
+    return session.exec(select(ContactGestionnaire).where(ContactGestionnaire.gestionnaire_id == gestionnaire_id)).all()
+
+
+def _remplacer_contacts(
+    session: Session, gestionnaire_id: int, contact_type: list[str], contact_valeur: list[str]
+) -> None:
+    """Remplace entièrement les contacts d'un gestionnaire par la liste
+    soumise (plus simple à raisonner qu'un diff fin, et suffisant pour un
+    formulaire mono-utilisateur)."""
+    for contact in _contacts_de(session, gestionnaire_id):
+        session.delete(contact)
+
+    for type_brut, valeur in zip(contact_type, contact_valeur):
+        valeur = valeur.strip()
+        if not valeur:
+            continue
+        session.add(ContactGestionnaire(gestionnaire_id=gestionnaire_id, type=TypeContact(type_brut), valeur=valeur))
+
+    session.commit()
+
+
+def _contacts_json(contacts: list[ContactGestionnaire]) -> str:
+    if not contacts:
+        return json.dumps([{"type": "email", "valeur": ""}])
+    return json.dumps([{"type": c.type.value, "valeur": c.valeur} for c in contacts])
+
+
 @router.get("", name="gestionnaires_liste")
 def gestionnaires_liste(
     request: Request,
@@ -38,8 +69,14 @@ def gestionnaires_liste(
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
     gestionnaires = session.exec(select(Gestionnaire).order_by(Gestionnaire.nom)).all()
+    contacts_par_gestionnaire: dict[int, list[ContactGestionnaire]] = {}
+    for contact in session.exec(select(ContactGestionnaire)).all():
+        contacts_par_gestionnaire.setdefault(contact.gestionnaire_id, []).append(contact)
+
     return templates.TemplateResponse(
-        request, "gestionnaires/liste.html", {"utilisateur": utilisateur, "gestionnaires": gestionnaires}
+        request,
+        "gestionnaires/liste.html",
+        {"utilisateur": utilisateur, "gestionnaires": gestionnaires, "contacts_par_gestionnaire": contacts_par_gestionnaire},
     )
 
 
@@ -51,7 +88,7 @@ def gestionnaire_nouveau_formulaire(
     return templates.TemplateResponse(
         request,
         "gestionnaires/formulaire.html",
-        {"utilisateur": utilisateur, "gestionnaire": None, "erreur": None},
+        {"utilisateur": utilisateur, "gestionnaire": None, "contacts_json": _contacts_json([]), "erreur": None},
     )
 
 
@@ -59,19 +96,17 @@ def gestionnaire_nouveau_formulaire(
 def gestionnaire_creer(
     request: Request,
     nom: str = Form(...),
-    contact_email: str = Form(""),
-    contact_tel: str = Form(""),
+    contact_type: list[str] = Form([]),
+    contact_valeur: list[str] = Form([]),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
-    gestionnaire = Gestionnaire(
-        nom=nom,
-        contact_email=contact_email or None,
-        contact_tel=contact_tel or None,
-    )
+    gestionnaire = Gestionnaire(nom=nom)
     session.add(gestionnaire)
     session.commit()
     session.refresh(gestionnaire)
+
+    _remplacer_contacts(session, gestionnaire.id, contact_type, contact_valeur)
 
     return RedirectResponse(url=request.url_for("gestionnaire_detail", gestionnaire_id=gestionnaire.id), status_code=303)
 
@@ -93,6 +128,7 @@ def gestionnaire_detail(
     unites_par_id = {u.id: u for u in session.exec(select(UniteLocative)).all()}
     biens_par_id = {b.id: b for b in session.exec(select(Bien)).all()}
     comptes_par_id = {c.id: c for c in session.exec(select(CompteBancaire)).all()}
+    contacts = _contacts_de(session, gestionnaire_id)
 
     return templates.TemplateResponse(
         request,
@@ -104,6 +140,7 @@ def gestionnaire_detail(
             "unites_par_id": unites_par_id,
             "biens_par_id": biens_par_id,
             "comptes_par_id": comptes_par_id,
+            "contacts": contacts,
         },
     )
 
@@ -118,10 +155,11 @@ def gestionnaire_modifier_formulaire(
     gestionnaire = session.get(Gestionnaire, gestionnaire_id)
     if gestionnaire is None:
         raise HTTPException(status_code=404, detail="Gestionnaire introuvable")
+    contacts = _contacts_de(session, gestionnaire_id)
     return templates.TemplateResponse(
         request,
         "gestionnaires/formulaire.html",
-        {"utilisateur": utilisateur, "gestionnaire": gestionnaire, "erreur": None},
+        {"utilisateur": utilisateur, "gestionnaire": gestionnaire, "contacts_json": _contacts_json(contacts), "erreur": None},
     )
 
 
@@ -130,8 +168,8 @@ def gestionnaire_modifier(
     request: Request,
     gestionnaire_id: int,
     nom: str = Form(...),
-    contact_email: str = Form(""),
-    contact_tel: str = Form(""),
+    contact_type: list[str] = Form([]),
+    contact_valeur: list[str] = Form([]),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
@@ -140,11 +178,10 @@ def gestionnaire_modifier(
         raise HTTPException(status_code=404, detail="Gestionnaire introuvable")
 
     gestionnaire.nom = nom
-    gestionnaire.contact_email = contact_email or None
-    gestionnaire.contact_tel = contact_tel or None
-
     session.add(gestionnaire)
     session.commit()
+
+    _remplacer_contacts(session, gestionnaire_id, contact_type, contact_valeur)
 
     return RedirectResponse(url=request.url_for("gestionnaire_detail", gestionnaire_id=gestionnaire.id), status_code=303)
 
@@ -166,6 +203,8 @@ def gestionnaire_supprimer(
             detail="Impossible de supprimer ce gestionnaire : des mandats, relevés ou virements y sont rattachés.",
         )
 
+    for contact in _contacts_de(session, gestionnaire_id):
+        session.delete(contact)
     session.delete(gestionnaire)
     session.commit()
 
@@ -236,9 +275,14 @@ def mandat_creer(
             status_code=400,
         )
 
+    # "Gestion complète" n'est pas une valeur d'enum à part (décision actée) :
+    # elle crée simplement les deux mandats (mise_en_location + gestion) d'un
+    # coup, plutôt que de devoir répéter l'opération manuellement deux fois.
+    gestion_complete = role == "gestion_complete"
+
     try:
         unite_id_parse = int(unite_locative_id)
-        role_enum = RoleMandat(role)
+        roles_a_creer = [RoleMandat.MISE_EN_LOCATION, RoleMandat.GESTION] if gestion_complete else [RoleMandat(role)]
         date_debut_parsee = parser_date_optionnelle(date_debut)
         if date_debut_parsee is None:
             raise ValueError("la date de début est obligatoire")
@@ -250,14 +294,18 @@ def mandat_creer(
     if unite is None:
         raise HTTPException(status_code=404, detail="Unité locative introuvable")
 
-    mandat = MandatGestion(
-        unite_locative_id=unite_id_parse,
-        gestionnaire_id=gestionnaire_id,
-        role=role_enum,
-        date_debut=date_debut_parsee,
-        compte_bancaire_id=compte_bancaire_id_parse,
-    )
-    session.add(mandat)
+    for role_enum in roles_a_creer:
+        # La mise en location ne génère pas de versement : pas de compte dessus.
+        compte_du_mandat = compte_bancaire_id_parse if role_enum == RoleMandat.GESTION else None
+        session.add(
+            MandatGestion(
+                unite_locative_id=unite_id_parse,
+                gestionnaire_id=gestionnaire_id,
+                role=role_enum,
+                date_debut=date_debut_parsee,
+                compte_bancaire_id=compte_du_mandat,
+            )
+        )
     session.commit()
 
     return RedirectResponse(url=request.url_for("gestionnaire_detail", gestionnaire_id=gestionnaire_id), status_code=303)
