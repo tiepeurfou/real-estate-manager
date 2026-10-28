@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
@@ -74,9 +72,6 @@ def virement_nouveau_formulaire(
 ):
     gestionnaires = session.exec(select(Gestionnaire).order_by(Gestionnaire.nom)).all()
     comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
-    comptes_par_gestionnaire_json = json.dumps(
-        {str(g.id): (g.compte_bancaire_id or "") for g in gestionnaires}
-    )
 
     return templates.TemplateResponse(
         request,
@@ -85,7 +80,6 @@ def virement_nouveau_formulaire(
             "utilisateur": utilisateur,
             "gestionnaires": gestionnaires,
             "comptes": comptes,
-            "comptes_par_gestionnaire_json": comptes_par_gestionnaire_json,
             "erreur": None,
         },
     )
@@ -106,9 +100,6 @@ def virement_creer(
     def _reponse_erreur(message: str):
         gestionnaires = session.exec(select(Gestionnaire).order_by(Gestionnaire.nom)).all()
         comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
-        comptes_par_gestionnaire_json = json.dumps(
-            {str(g.id): (g.compte_bancaire_id or "") for g in gestionnaires}
-        )
         return templates.TemplateResponse(
             request,
             "virements/formulaire.html",
@@ -116,7 +107,6 @@ def virement_creer(
                 "utilisateur": utilisateur,
                 "gestionnaires": gestionnaires,
                 "comptes": comptes,
-                "comptes_par_gestionnaire_json": comptes_par_gestionnaire_json,
                 "erreur": f"Données invalides : {message}",
             },
             status_code=400,

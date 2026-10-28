@@ -46,14 +46,12 @@ def gestionnaires_liste(
 @router.get("/nouveau", name="gestionnaire_nouveau_formulaire")
 def gestionnaire_nouveau_formulaire(
     request: Request,
-    session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
-    comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
     return templates.TemplateResponse(
         request,
         "gestionnaires/formulaire.html",
-        {"utilisateur": utilisateur, "gestionnaire": None, "comptes": comptes, "erreur": None},
+        {"utilisateur": utilisateur, "gestionnaire": None, "erreur": None},
     )
 
 
@@ -63,31 +61,13 @@ def gestionnaire_creer(
     nom: str = Form(...),
     contact_email: str = Form(""),
     contact_tel: str = Form(""),
-    compte_bancaire_id: str = Form(""),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
-    try:
-        compte_bancaire_id_parse = parser_int_optionnel(compte_bancaire_id)
-    except ValueError as erreur:
-        comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
-        return templates.TemplateResponse(
-            request,
-            "gestionnaires/formulaire.html",
-            {
-                "utilisateur": utilisateur,
-                "gestionnaire": None,
-                "comptes": comptes,
-                "erreur": f"Données invalides : {erreur}",
-            },
-            status_code=400,
-        )
-
     gestionnaire = Gestionnaire(
         nom=nom,
         contact_email=contact_email or None,
         contact_tel=contact_tel or None,
-        compte_bancaire_id=compte_bancaire_id_parse,
     )
     session.add(gestionnaire)
     session.commit()
@@ -112,6 +92,7 @@ def gestionnaire_detail(
     ).all()
     unites_par_id = {u.id: u for u in session.exec(select(UniteLocative)).all()}
     biens_par_id = {b.id: b for b in session.exec(select(Bien)).all()}
+    comptes_par_id = {c.id: c for c in session.exec(select(CompteBancaire)).all()}
 
     return templates.TemplateResponse(
         request,
@@ -122,6 +103,7 @@ def gestionnaire_detail(
             "mandats": mandats,
             "unites_par_id": unites_par_id,
             "biens_par_id": biens_par_id,
+            "comptes_par_id": comptes_par_id,
         },
     )
 
@@ -136,11 +118,10 @@ def gestionnaire_modifier_formulaire(
     gestionnaire = session.get(Gestionnaire, gestionnaire_id)
     if gestionnaire is None:
         raise HTTPException(status_code=404, detail="Gestionnaire introuvable")
-    comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
     return templates.TemplateResponse(
         request,
         "gestionnaires/formulaire.html",
-        {"utilisateur": utilisateur, "gestionnaire": gestionnaire, "comptes": comptes, "erreur": None},
+        {"utilisateur": utilisateur, "gestionnaire": gestionnaire, "erreur": None},
     )
 
 
@@ -151,7 +132,6 @@ def gestionnaire_modifier(
     nom: str = Form(...),
     contact_email: str = Form(""),
     contact_tel: str = Form(""),
-    compte_bancaire_id: str = Form(""),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
@@ -159,26 +139,9 @@ def gestionnaire_modifier(
     if gestionnaire is None:
         raise HTTPException(status_code=404, detail="Gestionnaire introuvable")
 
-    try:
-        compte_bancaire_id_parse = parser_int_optionnel(compte_bancaire_id)
-    except ValueError as erreur:
-        comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
-        return templates.TemplateResponse(
-            request,
-            "gestionnaires/formulaire.html",
-            {
-                "utilisateur": utilisateur,
-                "gestionnaire": gestionnaire,
-                "comptes": comptes,
-                "erreur": f"Données invalides : {erreur}",
-            },
-            status_code=400,
-        )
-
     gestionnaire.nom = nom
     gestionnaire.contact_email = contact_email or None
     gestionnaire.contact_tel = contact_tel or None
-    gestionnaire.compte_bancaire_id = compte_bancaire_id_parse
 
     session.add(gestionnaire)
     session.commit()
@@ -222,6 +185,7 @@ def mandat_nouveau_formulaire(
 
     biens_par_id = {b.id: b for b in session.exec(select(Bien)).all()}
     unites = session.exec(select(UniteLocative)).all()
+    comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
 
     return templates.TemplateResponse(
         request,
@@ -231,6 +195,7 @@ def mandat_nouveau_formulaire(
             "gestionnaire": gestionnaire,
             "unites": unites,
             "biens_par_id": biens_par_id,
+            "comptes": comptes,
             "roles": list(RoleMandat),
             "erreur": None,
         },
@@ -244,6 +209,7 @@ def mandat_creer(
     unite_locative_id: str = Form(...),
     role: str = Form(...),
     date_debut: str = Form(...),
+    compte_bancaire_id: str = Form(""),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
@@ -251,15 +217,10 @@ def mandat_creer(
     if gestionnaire is None:
         raise HTTPException(status_code=404, detail="Gestionnaire introuvable")
 
-    try:
-        unite_id_parse = int(unite_locative_id)
-        role_enum = RoleMandat(role)
-        date_debut_parsee = parser_date_optionnelle(date_debut)
-        if date_debut_parsee is None:
-            raise ValueError("la date de début est obligatoire")
-    except ValueError as erreur:
+    def _reponse_erreur(message: str):
         biens_par_id = {b.id: b for b in session.exec(select(Bien)).all()}
         unites = session.exec(select(UniteLocative)).all()
+        comptes = session.exec(select(CompteBancaire).order_by(CompteBancaire.libelle)).all()
         return templates.TemplateResponse(
             request,
             "gestionnaires/mandat_formulaire.html",
@@ -268,11 +229,22 @@ def mandat_creer(
                 "gestionnaire": gestionnaire,
                 "unites": unites,
                 "biens_par_id": biens_par_id,
+                "comptes": comptes,
                 "roles": list(RoleMandat),
-                "erreur": f"Données invalides : {erreur}",
+                "erreur": f"Données invalides : {message}",
             },
             status_code=400,
         )
+
+    try:
+        unite_id_parse = int(unite_locative_id)
+        role_enum = RoleMandat(role)
+        date_debut_parsee = parser_date_optionnelle(date_debut)
+        if date_debut_parsee is None:
+            raise ValueError("la date de début est obligatoire")
+        compte_bancaire_id_parse = parser_int_optionnel(compte_bancaire_id)
+    except ValueError as erreur:
+        return _reponse_erreur(str(erreur))
 
     unite = session.get(UniteLocative, unite_id_parse)
     if unite is None:
@@ -283,6 +255,7 @@ def mandat_creer(
         gestionnaire_id=gestionnaire_id,
         role=role_enum,
         date_debut=date_debut_parsee,
+        compte_bancaire_id=compte_bancaire_id_parse,
     )
     session.add(mandat)
     session.commit()

@@ -31,9 +31,20 @@
                 </select>
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 <label for="date_debut" class="form-label">Date de début</label>
                 <input type="date" class="form-control" id="date_debut" name="date_debut" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="compte_bancaire_id" class="form-label">Compte de versement (si rôle "gestion")</label>
+                <select id="compte_bancaire_id" name="compte_bancaire_id" class="form-select">
+                    <option value="">—</option>
+                    {% for compte in comptes %}
+                    <option value="{{ compte.id }}">{{ compte.libelle }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Le compte sur lequel ce gestionnaire vire les loyers de cette unité — propre à ce mandat, pas au gestionnaire (un même gestionnaire peut verser sur des comptes différents selon le bien).</div>
             </div>
 
             <button type="submit" class="btn btn-primary">Enregistrer</button>

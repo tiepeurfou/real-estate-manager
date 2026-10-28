@@ -8,7 +8,7 @@
 <div class="page-titre">
     <div>
         <h1 class="h3 mb-1">{{ gestionnaire.nom }}</h1>
-        <p class="text-secondary mb-0">{{ gestionnaire.contact_email or "—" }} · {{ gestionnaire.contact_tel or "—" }} · Compte : {{ gestionnaire.compte_bancaire.libelle if gestionnaire.compte_bancaire else "—" }}</p>
+        <p class="text-secondary mb-0">{{ gestionnaire.contact_email or "—" }} · {{ gestionnaire.contact_tel or "—" }}</p>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ url_for('gestionnaire_modifier_formulaire', gestionnaire_id=gestionnaire.id) }}" class="btn btn-outline-secondary">Modifier</a>
@@ -28,16 +28,18 @@
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
-                <tr><th>Bien</th><th>Unité</th><th>Rôle</th><th>Début</th><th>Fin</th><th></th></tr>
+                <tr><th>Bien</th><th>Unité</th><th>Rôle</th><th>Compte de versement</th><th>Début</th><th>Fin</th><th></th></tr>
             </thead>
             <tbody>
                 {% for mandat in mandats %}
                 {% set unite = unites_par_id.get(mandat.unite_locative_id) %}
                 {% set bien = biens_par_id.get(unite.bien_id) if unite else None %}
+                {% set compte = comptes_par_id.get(mandat.compte_bancaire_id) if mandat.compte_bancaire_id else None %}
                 <tr>
                     <td>{{ bien.libelle if bien else "—" }}</td>
                     <td>{{ unite.libelle if unite else "—" }}</td>
                     <td><span class="badge text-bg-info-subtle text-info-emphasis">{{ mandat.role.value }}</span></td>
+                    <td>{{ compte.libelle if compte else "—" }}</td>
                     <td>{{ mandat.date_debut }}</td>
                     <td>{{ mandat.date_fin or "—" }}</td>
                     <td>
@@ -53,7 +55,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="6" class="text-secondary text-center py-4">Aucun mandat.</td></tr>
+                <tr><td colspan="7" class="text-secondary text-center py-4">Aucun mandat.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

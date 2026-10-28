@@ -22,19 +22,9 @@
                 <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ gestionnaire.contact_email if gestionnaire and gestionnaire.contact_email else '' }}">
             </div>
 
-            <div class="mb-3">
+            <div class="mb-4">
                 <label for="contact_tel" class="form-label">Téléphone de contact</label>
                 <input type="text" class="form-control" id="contact_tel" name="contact_tel" value="{{ gestionnaire.contact_tel if gestionnaire and gestionnaire.contact_tel else '' }}">
-            </div>
-
-            <div class="mb-4">
-                <label for="compte_bancaire_id" class="form-label">Compte bancaire associé</label>
-                <select id="compte_bancaire_id" name="compte_bancaire_id" class="form-select">
-                    <option value="">—</option>
-                    {% for compte in comptes %}
-                    <option value="{{ compte.id }}" {{ "selected" if gestionnaire and gestionnaire.compte_bancaire_id == compte.id else "" }}>{{ compte.libelle }}</option>
-                    {% endfor %}
-                </select>
             </div>
 
             <button type="submit" class="btn btn-primary">Enregistrer</button>

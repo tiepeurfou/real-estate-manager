@@ -6,13 +6,14 @@ from app.models import (
     Gestionnaire,
     LigneDepense,
     LignePaiement,
+    MandatGestion,
     Rapprochement,
     RapprochementLigne,
     ReleveGestion,
     UniteLocative,
     VirementRecu,
 )
-from app.models.enums import Banque, StatutExtraction, StatutPaiement, TypeBien
+from app.models.enums import Banque, RoleMandat, StatutExtraction, StatutPaiement, TypeBien
 
 
 def _creer_contexte(session, hash_releve="hash-virement-1"):
@@ -37,10 +38,21 @@ def _creer_contexte(session, hash_releve="hash-virement-1"):
     session.commit()
     session.refresh(compte)
 
-    gestionnaire = Gestionnaire(nom="Locagestion", compte_bancaire_id=compte.id)
+    gestionnaire = Gestionnaire(nom="Locagestion")
     session.add(gestionnaire)
     session.commit()
     session.refresh(gestionnaire)
+
+    session.add(
+        MandatGestion(
+            unite_locative_id=unite.id,
+            gestionnaire_id=gestionnaire.id,
+            role=RoleMandat.GESTION,
+            date_debut=date(2024, 1, 1),
+            compte_bancaire_id=compte.id,
+        )
+    )
+    session.commit()
 
     releve = ReleveGestion(
         gestionnaire_id=gestionnaire.id,

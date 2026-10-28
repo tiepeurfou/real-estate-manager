@@ -50,7 +50,7 @@ def test_formulaire_nouveau_pas_capture_par_la_route_detail(client_connecte):
     assert "Ajouter un gestionnaire" in reponse.text
 
 
-def test_creation_gestionnaire_sans_compte_bancaire(client_connecte, engine):
+def test_creation_gestionnaire(client_connecte, engine):
     reponse = client_connecte.post(
         "/gestionnaires", data={"nom": "ArthurImmo", "contact_email": "contact@arthurimmo.fr"}, follow_redirects=False
     )
@@ -61,30 +61,7 @@ def test_creation_gestionnaire_sans_compte_bancaire(client_connecte, engine):
     with Session(engine) as s:
         gestionnaire = s.exec(select(Gestionnaire).where(Gestionnaire.nom == "ArthurImmo")).first()
         assert gestionnaire is not None
-        assert gestionnaire.compte_bancaire_id is None
-
-
-def test_creation_gestionnaire_avec_compte_bancaire(client_connecte, session, engine):
-    compte = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
-    session.add(compte)
-    session.commit()
-    session.refresh(compte)
-
-    reponse = client_connecte.post(
-        "/gestionnaires", data={"nom": "Locagestion", "compte_bancaire_id": str(compte.id)}, follow_redirects=False
-    )
-    assert reponse.status_code == 303
-
-    from sqlmodel import Session, select
-
-    with Session(engine) as s:
-        gestionnaire = s.exec(select(Gestionnaire).where(Gestionnaire.nom == "Locagestion")).first()
-        assert gestionnaire.compte_bancaire_id == compte.id
-
-
-def test_creation_gestionnaire_compte_bancaire_invalide(client_connecte):
-    reponse = client_connecte.post("/gestionnaires", data={"nom": "X", "compte_bancaire_id": "abc"})
-    assert reponse.status_code == 400
+        assert gestionnaire.contact_email == "contact@arthurimmo.fr"
 
 
 def test_detail_gestionnaire_inexistant(client_connecte):
@@ -194,6 +171,105 @@ def test_creation_mandat(client_connecte, session, engine):
         mandats = s.exec(select(MandatGestion).where(MandatGestion.gestionnaire_id == gestionnaire.id)).all()
         assert len(mandats) == 1
         assert mandats[0].role == RoleMandat.MISE_EN_LOCATION
+
+
+def test_creation_mandat_avec_compte_bancaire(client_connecte, session, engine):
+    """Le compte de versement est propre au mandat, pas au gestionnaire : un
+    même gestionnaire peut verser sur des comptes différents selon le bien
+    (ex. Locagestion : un compte pour Sedan, un autre pour Charleville)."""
+    gestionnaire = _creer_gestionnaire(session, nom="Locagestion")
+    _, unite = _creer_bien_avec_unite(session)
+    compte = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+
+    reponse = client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/mandats",
+        data={
+            "unite_locative_id": str(unite.id),
+            "role": "gestion",
+            "date_debut": "2024-01-01",
+            "compte_bancaire_id": str(compte.id),
+        },
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        mandat = s.exec(select(MandatGestion).where(MandatGestion.gestionnaire_id == gestionnaire.id)).first()
+        assert mandat.compte_bancaire_id == compte.id
+
+
+def test_meme_gestionnaire_deux_mandats_comptes_differents(client_connecte, session, engine):
+    gestionnaire = _creer_gestionnaire(session, nom="Locagestion")
+    bien_sedan, unite_sedan = _creer_bien_avec_unite(session)
+    bien_charleville = Bien(
+        type=TypeBien.IMMEUBLE,
+        libelle="Immeuble Charleville",
+        adresse_rue="2 rue Test",
+        adresse_code_postal="08000",
+        adresse_ville="Charleville-Mézières",
+    )
+    session.add(bien_charleville)
+    session.commit()
+    session.refresh(bien_charleville)
+    unite_charleville = UniteLocative(bien_id=bien_charleville.id, libelle="Appt 1")
+    session.add(unite_charleville)
+    session.commit()
+    session.refresh(unite_charleville)
+
+    compte_sedan = CompteBancaire(banque=Banque.SG, libelle="Compte SG")
+    compte_charleville = CompteBancaire(banque=Banque.LCL, libelle="Compte LCL")
+    session.add(compte_sedan)
+    session.add(compte_charleville)
+    session.commit()
+    session.refresh(compte_sedan)
+    session.refresh(compte_charleville)
+
+    client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/mandats",
+        data={
+            "unite_locative_id": str(unite_sedan.id),
+            "role": "gestion",
+            "date_debut": "2024-01-01",
+            "compte_bancaire_id": str(compte_sedan.id),
+        },
+    )
+    client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/mandats",
+        data={
+            "unite_locative_id": str(unite_charleville.id),
+            "role": "gestion",
+            "date_debut": "2024-01-01",
+            "compte_bancaire_id": str(compte_charleville.id),
+        },
+    )
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        mandats = s.exec(select(MandatGestion).where(MandatGestion.gestionnaire_id == gestionnaire.id)).all()
+        comptes_utilises = {m.compte_bancaire_id for m in mandats}
+        assert comptes_utilises == {compte_sedan.id, compte_charleville.id}
+
+
+def test_creation_mandat_compte_bancaire_invalide(client_connecte, session):
+    gestionnaire = _creer_gestionnaire(session)
+    _, unite = _creer_bien_avec_unite(session)
+
+    reponse = client_connecte.post(
+        f"/gestionnaires/{gestionnaire.id}/mandats",
+        data={
+            "unite_locative_id": str(unite.id),
+            "role": "gestion",
+            "date_debut": "2024-01-01",
+            "compte_bancaire_id": "abc",
+        },
+    )
+    assert reponse.status_code == 400
 
 
 def test_gestion_complete_se_traduit_par_deux_mandats(client_connecte, session, engine):

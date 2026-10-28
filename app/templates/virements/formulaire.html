@@ -11,11 +11,10 @@
             <div class="alert alert-danger">{{ erreur }}</div>
         {% endif %}
 
-        <form method="post" action="{{ url_for('virement_creer') }}" x-data="{ comptesParGestionnaire: {{ comptes_par_gestionnaire_json | safe }} }">
+        <form method="post" action="{{ url_for('virement_creer') }}">
             <div class="mb-3">
                 <label for="gestionnaire_id" class="form-label">Gestionnaire</label>
-                <select id="gestionnaire_id" name="gestionnaire_id" class="form-select" required
-                        x-on:change="$refs.compte.value = comptesParGestionnaire[$event.target.value] || ''">
+                <select id="gestionnaire_id" name="gestionnaire_id" class="form-select" required>
                     <option value="">—</option>
                     {% for g in gestionnaires %}
                     <option value="{{ g.id }}">{{ g.nom }}</option>
@@ -24,13 +23,14 @@
             </div>
 
             <div class="mb-3">
-                <label for="compte_bancaire_id" class="form-label">Compte bancaire</label>
-                <select id="compte_bancaire_id" name="compte_bancaire_id" class="form-select" x-ref="compte" required>
+                <label for="compte_bancaire_id" class="form-label">Compte bancaire crédité</label>
+                <select id="compte_bancaire_id" name="compte_bancaire_id" class="form-select" required>
                     <option value="">—</option>
                     {% for c in comptes %}
                     <option value="{{ c.id }}">{{ c.libelle }}</option>
                     {% endfor %}
                 </select>
+                <div class="form-text">Le compte sur lequel vous avez vu arriver ce virement — un même gestionnaire peut verser sur des comptes différents selon le bien.</div>
             </div>
 
             <div class="row">

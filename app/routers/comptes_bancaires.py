@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import CompteBancaire, Gestionnaire, Utilisateur, VirementRecu
+from app.models import CompteBancaire, MandatGestion, Utilisateur, VirementRecu
 from app.models.enums import Banque
 from app.security import get_current_user
 from app.templating import templates
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/comptes-bancaires", tags=["comptes-bancaires"])
 
 
 def _compte_a_des_donnees_liees(session: Session, compte: CompteBancaire) -> bool:
-    if session.exec(select(Gestionnaire).where(Gestionnaire.compte_bancaire_id == compte.id)).first() is not None:
+    if session.exec(select(MandatGestion).where(MandatGestion.compte_bancaire_id == compte.id)).first() is not None:
         return True
     if session.exec(select(VirementRecu).where(VirementRecu.compte_bancaire_id == compte.id)).first() is not None:
         return True

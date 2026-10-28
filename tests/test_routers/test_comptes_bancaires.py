@@ -1,5 +1,7 @@
-from app.models import CompteBancaire, Gestionnaire, VirementRecu
-from app.models.enums import Banque
+from datetime import date
+
+from app.models import Bien, CompteBancaire, Gestionnaire, MandatGestion, UniteLocative, VirementRecu
+from app.models.enums import Banque, RoleMandat, TypeBien
 
 
 def _creer_compte(session, libelle="Compte SG Sedan") -> CompteBancaire:
@@ -73,9 +75,37 @@ def test_suppression_compte_bancaire_sans_donnees_liees(client_connecte, session
     assert "Nouveau libellé" not in client_connecte.get("/comptes-bancaires").text
 
 
-def test_suppression_compte_bancaire_refusee_si_gestionnaire_lie(client_connecte, session):
+def test_suppression_compte_bancaire_refusee_si_mandat_lie(client_connecte, session):
     compte = _creer_compte(session)
-    session.add(Gestionnaire(nom="ArthurImmo", compte_bancaire_id=compte.id))
+    bien = Bien(
+        type=TypeBien.IMMEUBLE,
+        libelle="Immeuble Sedan",
+        adresse_rue="1 rue Test",
+        adresse_code_postal="08200",
+        adresse_ville="Sedan",
+    )
+    session.add(bien)
+    session.commit()
+    session.refresh(bien)
+    unite = UniteLocative(bien_id=bien.id, libelle="Appt 1")
+    session.add(unite)
+    session.commit()
+    session.refresh(unite)
+
+    gestionnaire = Gestionnaire(nom="ArthurImmo")
+    session.add(gestionnaire)
+    session.commit()
+    session.refresh(gestionnaire)
+
+    session.add(
+        MandatGestion(
+            unite_locative_id=unite.id,
+            gestionnaire_id=gestionnaire.id,
+            role=RoleMandat.GESTION,
+            date_debut=date(2024, 1, 1),
+            compte_bancaire_id=compte.id,
+        )
+    )
     session.commit()
 
     reponse = client_connecte.post(f"/comptes-bancaires/{compte.id}/supprimer")
@@ -88,8 +118,6 @@ def test_suppression_compte_bancaire_refusee_si_virement_lie(client_connecte, se
     session.add(gestionnaire)
     session.commit()
     session.refresh(gestionnaire)
-
-    from datetime import date
 
     session.add(
         VirementRecu(
