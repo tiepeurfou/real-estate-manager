@@ -59,3 +59,9 @@ class StatutCandidatCourriel(str, Enum):
 class TypeContact(str, Enum):
     EMAIL = "email"
     TELEPHONE = "telephone"
+
+
+class FrequenceDepense(str, Enum):
+    MENSUELLE = "mensuelle"
+    TRIMESTRIELLE = "trimestrielle"
+    ANNUELLE = "annuelle"

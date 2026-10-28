@@ -6,7 +6,10 @@
 <p><a href="{{ url_for('virements_liste') }}" class="text-decoration-none">&larr; Finances</a></p>
 <div class="page-titre">
     <h1 class="h3 mb-0">Dépenses</h1>
-    <a href="{{ url_for('depense_nouvelle_formulaire') }}" class="btn btn-primary">+ Ajouter une dépense</a>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('depenses_recurrentes_liste') }}" class="btn btn-outline-secondary">Dépenses récurrentes</a>
+        <a href="{{ url_for('depense_nouvelle_formulaire') }}" class="btn btn-primary">+ Ajouter une dépense</a>
+    </div>
 </div>
 
 <div class="card carte-ombre mb-4">
@@ -60,6 +63,8 @@
                     <td>
                         {% if ligne.releve_gestion_id %}
                         <span class="badge text-bg-secondary">relevé</span>
+                        {% elif ligne.depense_recurrente_id %}
+                        <span class="badge text-bg-primary-subtle text-primary-emphasis">récurrente</span>
                         {% else %}
                         <span class="badge text-bg-info-subtle text-info-emphasis">manuelle</span>
                         {% endif %}

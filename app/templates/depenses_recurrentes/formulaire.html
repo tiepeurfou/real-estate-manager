@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block titre %}{{ "Modifier" if depense_recurrente else "Ajouter" }} une dépense récurrente — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<h1 class="h3 mb-4">{{ "Modifier" if depense_recurrente else "Ajouter" }} une dépense récurrente</h1>
+
+<div class="card carte-ombre carte-formulaire">
+    <div class="card-body p-4">
+        {% if erreur %}
+            <div class="alert alert-danger">{{ erreur }}</div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('depense_recurrente_modifier', depense_recurrente_id=depense_recurrente.id) if depense_recurrente else url_for('depense_recurrente_creer') }}">
+            <div class="mb-3">
+                <label for="bien_id" class="form-label">Bien</label>
+                <select id="bien_id" name="bien_id" class="form-select" required>
+                    {% for bien_id, bien in biens_par_id.items() %}
+                    <option value="{{ bien_id }}" {{ "selected" if depense_recurrente and depense_recurrente.bien_id == bien_id else "" }}>{{ bien.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="unite_locative_id" class="form-label">Unité concernée (optionnel)</label>
+                <select id="unite_locative_id" name="unite_locative_id" class="form-select">
+                    <option value="">— Dépense pour tout le bien —</option>
+                    {% for unite in unites %}
+                    {% set bien = biens_par_id.get(unite.bien_id) %}
+                    <option value="{{ unite.id }}" {{ "selected" if depense_recurrente and depense_recurrente.unite_locative_id == unite.id else "" }}>{{ bien.libelle if bien else "?" }} — {{ unite.libelle }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="categorie" class="form-label">Catégorie</label>
+                <input type="text" class="form-control" id="categorie" name="categorie" list="categories-suggerees"
+                       value="{{ depense_recurrente.categorie if depense_recurrente else '' }}" required>
+                <datalist id="categories-suggerees">
+                    {% for c in categories_suggerees %}
+                    <option value="{{ c }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="mb-3">
+                <label for="libelle" class="form-label">Libellé</label>
+                <input type="text" class="form-control" id="libelle" name="libelle" value="{{ depense_recurrente.libelle if depense_recurrente else '' }}" required>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="montant" class="form-label">Montant</label>
+                    <input type="number" step="0.01" class="form-control" id="montant" name="montant" value="{{ depense_recurrente.montant if depense_recurrente else '' }}" required>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label for="frequence" class="form-label">Fréquence</label>
+                    <select id="frequence" name="frequence" class="form-select" required>
+                        {% for f in frequences %}
+                        <option value="{{ f.value }}" {{ "selected" if depense_recurrente and depense_recurrente.frequence == f else "" }}>{{ f.value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label for="date_debut" class="form-label">Première échéance</label>
+                    <input type="date" class="form-control" id="date_debut" name="date_debut" value="{{ depense_recurrente.date_debut if depense_recurrente else '' }}" required>
+                    <div class="form-text">Le jour du mois de cette date sera repris pour chaque échéance suivante.</div>
+                </div>
+                <div class="col-sm-6 mb-4">
+                    <label for="date_fin" class="form-label">Dernière échéance (optionnel)</label>
+                    <input type="date" class="form-control" id="date_fin" name="date_fin" value="{{ depense_recurrente.date_fin if depense_recurrente and depense_recurrente.date_fin else '' }}">
+                    <div class="form-text">Ex. la date de fin d'un crédit. Laisser vide si ça continue indéfiniment.</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

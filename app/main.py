@@ -10,6 +10,7 @@ from app.routers import (
     biens,
     comptes_bancaires,
     depenses,
+    depenses_recurrentes,
     documents,
     gestionnaires,
     ingestion_mail,
@@ -45,6 +46,7 @@ app.include_router(locataires.router)
 app.include_router(occupations.router)
 app.include_router(virements.router)
 app.include_router(depenses.router)
+app.include_router(depenses_recurrentes.router)
 app.include_router(paiements.router)
 app.include_router(documents.router)
 app.include_router(ingestion_mail.router)

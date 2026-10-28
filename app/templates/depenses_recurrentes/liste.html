@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block titre %}Dépenses récurrentes — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('depenses_liste') }}" class="text-decoration-none">&larr; Dépenses</a></p>
+
+<div class="page-titre">
+    <h1 class="h3 mb-0">Dépenses récurrentes</h1>
+    <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('depenses_recurrentes_generer') }}">
+            <button type="submit" class="btn btn-outline-primary">Générer les échéances dues</button>
+        </form>
+        <a href="{{ url_for('depense_recurrente_nouvelle_formulaire') }}" class="btn btn-primary">+ Ajouter</a>
+    </div>
+</div>
+
+<p class="text-secondary small">
+    Pour les dépenses qui reviennent régulièrement (crédit immobilier, électricité des parties communes...).
+    "Générer les échéances dues" crée les lignes de dépense manquantes jusqu'à aujourd'hui, sans jamais
+    dupliquer ce qui existe déjà — vous pouvez cliquer autant de fois que vous voulez.
+</p>
+
+<div class="card carte-ombre">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien/Unité</th><th>Catégorie</th><th>Libellé</th><th class="text-end">Montant</th><th>Fréquence</th><th>Début</th><th>Fin</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for depense_recurrente in templates_recurrents %}
+                {% set bien = biens_par_id.get(depense_recurrente.bien_id) %}
+                {% set unite = unites_par_id.get(depense_recurrente.unite_locative_id) if depense_recurrente.unite_locative_id else None %}
+                {% set terminee = depense_recurrente.date_fin and depense_recurrente.date_fin < aujourdhui %}
+                <tr class="{{ 'text-secondary' if terminee else '' }}">
+                    <td>{{ bien.libelle if bien else "—" }}{{ " — " ~ unite.libelle if unite else "" }}</td>
+                    <td><span class="badge text-bg-light border">{{ depense_recurrente.categorie }}</span></td>
+                    <td>{{ depense_recurrente.libelle }}</td>
+                    <td class="text-end fw-semibold">{{ "%.2f"|format(depense_recurrente.montant) }} €</td>
+                    <td>{{ depense_recurrente.frequence.value }}</td>
+                    <td>{{ depense_recurrente.date_debut }}</td>
+                    <td>
+                        {% if terminee %}
+                        <span class="badge text-bg-secondary">terminée le {{ depense_recurrente.date_fin }}</span>
+                        {% else %}
+                        {{ depense_recurrente.date_fin or "—" }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('depense_recurrente_modifier_formulaire', depense_recurrente_id=depense_recurrente.id) }}" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                            <form method="post" action="{{ url_for('depense_recurrente_supprimer', depense_recurrente_id=depense_recurrente.id) }}" class="d-inline"
+                                  onsubmit="return confirm('Supprimer ce modèle de dépense récurrente ?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-secondary text-center py-4">Aucune dépense récurrente enregistrée.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
