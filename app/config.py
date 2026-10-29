@@ -58,3 +58,10 @@ SAUVEGARDE_DB_NOMBRE_JOURS_CONSERVES = int(os.environ.get("SAUVEGARDE_DB_NOMBRE_
 # faites) approche dans REVISION_LOYER_FENETRE_JOURS jours.
 REVISION_LOYER_HEURE = int(os.environ.get("REVISION_LOYER_HEURE", "9"))
 REVISION_LOYER_FENETRE_JOURS = int(os.environ.get("REVISION_LOYER_FENETRE_JOURS", "30"))
+
+# Rappel d'expiration du DPE (app/services/dpe.py) : vérification quotidienne
+# des unités dont le DPE (valide 10 ans) expire dans DPE_FENETRE_JOURS jours.
+# Fenêtre plus large que la révision de loyer : refaire un DPE demande de
+# prendre rendez-vous avec un diagnostiqueur, pas juste envoyer un courrier.
+DPE_HEURE = int(os.environ.get("DPE_HEURE", "10"))
+DPE_FENETRE_JOURS = int(os.environ.get("DPE_FENETRE_JOURS", "90"))

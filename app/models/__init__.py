@@ -14,6 +14,7 @@ from app.models.locataire import Locataire
 from app.models.mandat_gestion import MandatGestion
 from app.models.occupation import Occupation
 from app.models.occupation_locataire import OccupationLocataire
+from app.models.rappel_dpe_notifie import RappelDpeNotifie
 from app.models.rappel_revision_loyer_notifie import RappelRevisionLoyerNotifie
 from app.models.rapprochement import Rapprochement
 from app.models.rapprochement_ligne import RapprochementLigne
@@ -36,6 +37,7 @@ __all__ = [
     "MandatGestion",
     "Occupation",
     "OccupationLocataire",
+    "RappelDpeNotifie",
     "RappelRevisionLoyerNotifie",
     "Rapprochement",
     "RapprochementLigne",

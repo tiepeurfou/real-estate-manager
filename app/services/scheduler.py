@@ -3,8 +3,9 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import Session
 
-from app.config import INGESTION_MAIL_INTERVALLE_HEURES, REVISION_LOYER_HEURE, SAUVEGARDE_DB_HEURE
+from app.config import DPE_HEURE, INGESTION_MAIL_INTERVALLE_HEURES, REVISION_LOYER_HEURE, SAUVEGARDE_DB_HEURE
 from app.database import engine
+from app.services.dpe import notifier_dpe_a_renouveler
 from app.services.ingestion_mail import notifier_nouveaux_candidats
 from app.services.mail import ErreurConnexionImap, boite_mail_configuree, nouveau_client_imap
 from app.services.notifications import ErreurNotification, envoyer_notification
@@ -62,17 +63,28 @@ def verifier_revisions_loyer() -> None:
         notifier_revisions_a_venir(session)
 
 
+def verifier_dpe() -> None:
+    """Un cycle du rappel quotidien d'expiration de DPE : notifie (ntfy)
+    pour chaque unité dont le DPE (valide 10 ans) approche de l'expiration,
+    sans jamais planifier de diagnostic automatiquement — reste à faire
+    manuellement auprès d'un diagnostiqueur."""
+    with Session(engine) as session:
+        notifier_dpe_a_renouveler(session)
+
+
 def demarrer_scheduler() -> BackgroundScheduler:
     """Démarre les tâches de fond (thread séparé — imaplib est bloquant,
     incompatible avec un scheduler asyncio sans wrapper). Un premier scan de
     la boîte mail est lancé immédiatement au démarrage plutôt que d'attendre
-    le premier intervalle complet ; la sauvegarde et le rappel de révision
-    de loyer, eux, n'ont pas besoin de tourner immédiatement (pas aussi
-    urgents, et éviter de les déclencher à chaque redémarrage du service)."""
+    le premier intervalle complet ; la sauvegarde, le rappel de révision de
+    loyer et le rappel DPE, eux, n'ont pas besoin de tourner immédiatement
+    (pas aussi urgents, et éviter de les déclencher à chaque redémarrage du
+    service)."""
     scheduler = BackgroundScheduler()
     scheduler.add_job(scanner_la_boite_mail, "interval", hours=INGESTION_MAIL_INTERVALLE_HEURES)
     scheduler.add_job(sauvegarder_la_base_avec_alerte, "cron", hour=SAUVEGARDE_DB_HEURE, minute=0)
     scheduler.add_job(verifier_revisions_loyer, "cron", hour=REVISION_LOYER_HEURE, minute=0)
+    scheduler.add_job(verifier_dpe, "cron", hour=DPE_HEURE, minute=0)
     scheduler.start()
     scheduler.add_job(scanner_la_boite_mail)
     return scheduler
