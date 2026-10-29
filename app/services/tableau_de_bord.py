@@ -9,8 +9,10 @@ from app.models import (
     Gestionnaire,
     LigneDepense,
     LignePaiement,
+    Locataire,
     MandatGestion,
     Occupation,
+    OccupationLocataire,
     ReleveGestion,
     UniteLocative,
     VirementRecu,
@@ -294,6 +296,216 @@ def calculer_par_type_pour_mois(session: Session, periode: date) -> list[Donnees
 
     for depense in session.exec(select(LigneDepense)).all():
         if not (debut_mois <= depense.date < fin_mois):
+            continue
+        bien_id = depense.bien_id
+        if bien_id is None and depense.unite_locative_id is not None:
+            bien_id = bien_id_par_unite_id.get(depense.unite_locative_id)
+        type_bien = type_par_bien_id.get(bien_id)
+        if type_bien not in resultats:
+            continue
+        resultats[type_bien].depenses_totales += depense.montant
+
+    return [resultats[t] for t in types_presents]
+
+
+@dataclass
+class LocataireDeclaration:
+    nom: str
+    prenom: str
+    date_naissance: Optional[date]
+    bien_libelle: str
+    unite_libelle: str
+
+
+@dataclass
+class UniteDeclaration:
+    bien_libelle: str
+    unite_libelle: str
+    numero_fiscal: Optional[str]
+    regime_fiscal: Optional[str]
+
+
+@dataclass
+class DonneesAnnuelles:
+    annee: int
+    bien_id: Optional[int] = None
+    loyers_attendus: float = 0.0
+    loyers_percus: float = 0.0
+    dettes_fin_annee: float = 0.0
+    depenses_totales: float = 0.0
+    depenses_par_categorie: list[DepenseParCategorie] = field(default_factory=list)
+    locataires_actifs: list[LocataireDeclaration] = field(default_factory=list)
+    unites_concernees: list[UniteDeclaration] = field(default_factory=list)
+
+
+@dataclass
+class DonneesAnnuellesParType:
+    type_bien: TypeBien
+    loyers_attendus: float = 0.0
+    loyers_percus: float = 0.0
+    dettes_fin_annee: float = 0.0
+    depenses_totales: float = 0.0
+
+
+def _borne_dette_fin_annee(annee: int, aujourdhui: date) -> date:
+    """Le 1er décembre de l'année demandée, sauf si cette année est en
+    cours : dans ce cas la borne est le mois courant, sinon on afficherait
+    une dette "en coupe" sur des mois qui n'ont pas encore eu lieu."""
+    if annee < aujourdhui.year:
+        return date(annee, 12, 1)
+    return date(aujourdhui.year, aujourdhui.month, 1)
+
+
+def calculer_pour_annee(session: Session, annee: int, bien_id: Optional[int] = None) -> DonneesAnnuelles:
+    """Vue annuelle pensée pour la déclaration des revenus fonciers : loyers
+    perçus/attendus et dépenses sur l'année civile, dette en coupe (voir
+    `_borne_dette_fin_annee`), et les éléments nécessaires à la déclaration
+    elle-même — locataires dont l'occupation a chevauché l'année (avec leur
+    date de naissance) et unités concernées (avec leur numéro fiscal)."""
+    aujourdhui = date.today()
+    borne_dette = _borne_dette_fin_annee(annee, aujourdhui)
+    debut_annee = date(annee, 1, 1)
+    fin_annee = date(annee + 1, 1, 1)
+
+    if bien_id is not None:
+        unite_ids = [u.id for u in session.exec(select(UniteLocative).where(UniteLocative.bien_id == bien_id)).all()]
+        lignes_paiement = (
+            session.exec(select(LignePaiement).where(LignePaiement.unite_locative_id.in_(unite_ids))).all()
+            if unite_ids
+            else []
+        )
+        condition_depense = LigneDepense.bien_id == bien_id
+        if unite_ids:
+            condition_depense = condition_depense | LigneDepense.unite_locative_id.in_(unite_ids)
+        lignes_depense = session.exec(select(LigneDepense).where(condition_depense)).all()
+    else:
+        unite_ids = [u.id for u in session.exec(select(UniteLocative)).all()]
+        lignes_paiement = session.exec(select(LignePaiement)).all()
+        ids_residences_principales = {
+            b.id for b in session.exec(select(Bien).where(Bien.type == TypeBien.RESIDENCE_PRINCIPALE)).all()
+        }
+        lignes_depense = [
+            d for d in session.exec(select(LigneDepense)).all() if d.bien_id not in ids_residences_principales
+        ]
+
+    lignes_de_l_annee = [l for l in lignes_paiement if l.periode.year == annee]
+    lignes_jusqu_a_cette_annee = [l for l in lignes_paiement if l.periode <= borne_dette]
+    dernieres_lignes_en_coupe = _dernieres_lignes_par_unite(lignes_jusqu_a_cette_annee)
+
+    depenses_de_l_annee = [d for d in lignes_depense if debut_annee <= d.date < fin_annee]
+    totaux_par_categorie: dict[str, float] = {}
+    for d in depenses_de_l_annee:
+        totaux_par_categorie[d.categorie] = totaux_par_categorie.get(d.categorie, 0.0) + d.montant
+
+    # Éléments de déclaration : les occupations qui ont chevauché l'année
+    # (pas seulement celles actives aujourd'hui) donnent les locataires et
+    # les unités à déclarer pour cette année précise.
+    requete_occupations = select(Occupation).where(
+        Occupation.date_entree < fin_annee,
+        (Occupation.date_sortie.is_(None)) | (Occupation.date_sortie >= debut_annee),
+    )
+    if bien_id is not None:
+        requete_occupations = requete_occupations.where(Occupation.unite_locative_id.in_(unite_ids))
+    occupations_de_l_annee = session.exec(requete_occupations).all()
+
+    unites_par_id = {u.id: u for u in session.exec(select(UniteLocative)).all()}
+    biens_par_id = {b.id: b for b in session.exec(select(Bien)).all()}
+
+    locataires_actifs: list[LocataireDeclaration] = []
+    unites_concernees_ids: set[int] = set()
+    for occupation in occupations_de_l_annee:
+        unite = unites_par_id.get(occupation.unite_locative_id)
+        bien = biens_par_id.get(unite.bien_id) if unite else None
+        unites_concernees_ids.add(occupation.unite_locative_id)
+        liens = session.exec(
+            select(OccupationLocataire).where(OccupationLocataire.occupation_id == occupation.id)
+        ).all()
+        for lien in liens:
+            locataire = session.get(Locataire, lien.locataire_id)
+            if locataire is None:
+                continue
+            locataires_actifs.append(
+                LocataireDeclaration(
+                    nom=locataire.nom,
+                    prenom=locataire.prenom,
+                    date_naissance=locataire.date_naissance,
+                    bien_libelle=bien.libelle if bien else "—",
+                    unite_libelle=unite.libelle if unite else "—",
+                )
+            )
+    locataires_actifs.sort(key=lambda l: (l.bien_libelle, l.unite_libelle, l.nom, l.prenom))
+
+    unites_concernees = [
+        UniteDeclaration(
+            bien_libelle=(
+                biens_par_id[unites_par_id[uid].bien_id].libelle
+                if unites_par_id[uid].bien_id in biens_par_id
+                else "—"
+            ),
+            unite_libelle=unites_par_id[uid].libelle,
+            numero_fiscal=unites_par_id[uid].numero_fiscal,
+            regime_fiscal=unites_par_id[uid].regime_fiscal,
+        )
+        for uid in sorted(unites_concernees_ids, key=lambda uid: unites_par_id[uid].libelle)
+    ]
+
+    return DonneesAnnuelles(
+        annee=annee,
+        bien_id=bien_id,
+        loyers_attendus=sum(l.montant_attendu for l in lignes_de_l_annee),
+        loyers_percus=sum(l.montant_percu for l in lignes_de_l_annee),
+        dettes_fin_annee=sum(l.dette_cumulee for l in dernieres_lignes_en_coupe.values() if l.dette_cumulee > 0),
+        depenses_totales=sum(d.montant for d in depenses_de_l_annee),
+        depenses_par_categorie=[
+            DepenseParCategorie(categorie=c, montant=m) for c, m in sorted(totaux_par_categorie.items())
+        ],
+        locataires_actifs=locataires_actifs,
+        unites_concernees=unites_concernees,
+    )
+
+
+def calculer_par_type_pour_annee(session: Session, annee: int) -> list[DonneesAnnuellesParType]:
+    """Agrège les mêmes métriques que `calculer_pour_annee()` mais
+    regroupées par type de bien — mêmes conventions que
+    `calculer_par_type_pour_mois()` (la résidence principale n'est pas
+    exclue, le classement par type la distingue déjà naturellement)."""
+    aujourdhui = date.today()
+    borne_dette = _borne_dette_fin_annee(annee, aujourdhui)
+    debut_annee = date(annee, 1, 1)
+    fin_annee = date(annee + 1, 1, 1)
+
+    biens = session.exec(select(Bien)).all()
+    types_presents = [t for t in TypeBien if any(b.type == t for b in biens)]
+    resultats = {t: DonneesAnnuellesParType(type_bien=t) for t in types_presents}
+
+    unites = session.exec(select(UniteLocative)).all()
+    bien_id_par_unite_id = {u.id: u.bien_id for u in unites}
+    type_par_bien_id = {b.id: b.type for b in biens}
+
+    lignes_paiement = session.exec(select(LignePaiement)).all()
+    lignes_de_l_annee = [l for l in lignes_paiement if l.periode.year == annee]
+    lignes_jusqu_a_cette_annee = [l for l in lignes_paiement if l.periode <= borne_dette]
+    dernieres_lignes_en_coupe = _dernieres_lignes_par_unite(lignes_jusqu_a_cette_annee)
+
+    for ligne in lignes_de_l_annee:
+        bien_id = bien_id_par_unite_id.get(ligne.unite_locative_id)
+        type_bien = type_par_bien_id.get(bien_id)
+        if type_bien not in resultats:
+            continue
+        resultats[type_bien].loyers_attendus += ligne.montant_attendu
+        resultats[type_bien].loyers_percus += ligne.montant_percu
+
+    for ligne in dernieres_lignes_en_coupe.values():
+        if ligne.dette_cumulee <= 0:
+            continue
+        bien_id = bien_id_par_unite_id.get(ligne.unite_locative_id)
+        type_bien = type_par_bien_id.get(bien_id)
+        if type_bien not in resultats:
+            continue
+        resultats[type_bien].dettes_fin_annee += ligne.dette_cumulee
+
+    for depense in session.exec(select(LigneDepense)).all():
+        if not (debut_annee <= depense.date < fin_annee):
             continue
         bien_id = depense.bien_id
         if bien_id is None and depense.unite_locative_id is not None:

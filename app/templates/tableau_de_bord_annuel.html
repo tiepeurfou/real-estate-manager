@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block titre %}Année {{ donnees.annee }} — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('tableau_de_bord_mensuel') }}" class="text-decoration-none">&larr; Historique mensuel</a></p>
+
+<div class="page-titre">
+    <div class="d-flex align-items-center gap-3">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{{ url_for('tableau_de_bord_annuel') }}?annee={{ annee_precedente }}{{ '&bien_id=' ~ bien_id_filtre if bien_id_filtre else '' }}">&larr;</a>
+        <h1 class="h3 mb-0">Année {{ donnees.annee }}</h1>
+        {% if not est_annee_courante %}
+        <a class="btn btn-outline-secondary btn-sm"
+           href="{{ url_for('tableau_de_bord_annuel') }}?annee={{ annee_suivante }}{{ '&bien_id=' ~ bien_id_filtre if bien_id_filtre else '' }}">&rarr;</a>
+        {% else %}
+        <span class="badge text-bg-light border">année en cours</span>
+        {% endif %}
+    </div>
+    <form method="get" action="{{ url_for('tableau_de_bord_annuel') }}" class="d-flex gap-2">
+        <input type="hidden" name="annee" value="{{ donnees.annee }}">
+        <select name="bien_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Tous les biens</option>
+            {% for b in biens %}
+            <option value="{{ b.id }}" {{ "selected" if bien_id_filtre == b.id else "" }}>{{ b.libelle }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<p class="text-secondary small">
+    Vue pensée pour la déclaration des revenus fonciers (impots.gouv.fr) — loyers, dépenses et éléments de
+    déclaration (locataires, numéros fiscaux) pour l'année civile.
+    {% if est_annee_courante %}L'année étant en cours, les dettes sont calculées jusqu'au mois actuel.{% endif %}
+</p>
+
+<section class="synthese mb-4">
+    <div class="card carte-ombre carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.loyers_percus) }} € / {{ "%.0f"|format(donnees.loyers_attendus) }} €</span>
+        <span class="carte-chiffre__libelle">loyers perçus sur l'année</span>
+    </div>
+    <div class="card carte-ombre carte-chiffre {{ 'carte-chiffre--alerte' if donnees.dettes_fin_annee > 0 else '' }}">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.dettes_fin_annee) }} €</span>
+        <span class="carte-chiffre__libelle">dettes locataires (en coupe à fin d'année)</span>
+    </div>
+    <div class="card carte-ombre carte-chiffre">
+        <span class="carte-chiffre__valeur">{{ "%.0f"|format(donnees.depenses_totales) }} €</span>
+        <span class="carte-chiffre__libelle">dépenses sur l'année</span>
+    </div>
+</section>
+
+<h2 class="h5 mb-3">Dépenses par catégorie</h2>
+<div class="d-flex flex-wrap gap-2 mb-4">
+    {% for d in donnees.depenses_par_categorie %}
+    <span class="badge text-bg-light border p-2 fs-6">{{ d.categorie }} : {{ "%.2f"|format(d.montant) }} €</span>
+    {% else %}
+    <span class="text-secondary">Aucune dépense cette année.</span>
+    {% endfor %}
+</div>
+
+{% if not bien_id_filtre and donnees_par_type %}
+<h2 class="h5 mb-3">Par type de bien</h2>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Type</th><th class="text-end">Loyers perçus / attendus</th><th class="text-end">Dettes</th><th class="text-end">Dépenses</th></tr>
+            </thead>
+            <tbody>
+                {% for t in donnees_par_type %}
+                <tr>
+                    <td><span class="badge text-bg-light border">{{ t.type_bien.value }}</span></td>
+                    <td class="text-end">{{ "%.2f"|format(t.loyers_percus) }} € / {{ "%.2f"|format(t.loyers_attendus) }} €</td>
+                    <td class="text-end">{{ "%.2f"|format(t.dettes_fin_annee) }} €</td>
+                    <td class="text-end">{{ "%.2f"|format(t.depenses_totales) }} €</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<h2 class="h5 mb-3">Éléments pour la déclaration</h2>
+
+<h3 class="h6 mb-2 text-secondary">Locataires actifs sur l'année</h3>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Nom</th><th>Prénom</th><th>Date de naissance</th><th>Bien</th><th>Unité</th></tr>
+            </thead>
+            <tbody>
+                {% for l in donnees.locataires_actifs %}
+                <tr>
+                    <td>{{ l.nom }}</td>
+                    <td>{{ l.prenom }}</td>
+                    <td>{{ l.date_naissance or "—" }}</td>
+                    <td>{{ l.bien_libelle }}</td>
+                    <td>{{ l.unite_libelle }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-secondary text-center py-3">Aucun locataire sur cette période.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h3 class="h6 mb-2 text-secondary">Unités concernées</h3>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien</th><th>Unité</th><th>Numéro fiscal</th><th>Régime fiscal</th></tr>
+            </thead>
+            <tbody>
+                {% for u in donnees.unites_concernees %}
+                <tr>
+                    <td>{{ u.bien_libelle }}</td>
+                    <td>{{ u.unite_libelle }}</td>
+                    <td>{{ u.numero_fiscal or "—" }}</td>
+                    <td>{{ u.regime_fiscal or "—" }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-secondary text-center py-3">Aucune unité concernée sur cette période.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

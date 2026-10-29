@@ -3,7 +3,10 @@
 {% block titre %}{{ libelle_periode }} — Real Estate Manager{% endblock %}
 
 {% block contenu %}
-<p><a href="{{ url_for('accueil') }}" class="text-decoration-none">&larr; Tableau de bord</a></p>
+<p>
+    <a href="{{ url_for('accueil') }}" class="text-decoration-none">&larr; Tableau de bord</a>
+    · <a href="{{ url_for('tableau_de_bord_annuel') }}{{ '?bien_id=' ~ bien_id_filtre if bien_id_filtre else '' }}" class="text-decoration-none">Récapitulatif annuel &rarr;</a>
+</p>
 
 <div class="page-titre">
     <div class="d-flex align-items-center gap-3">
