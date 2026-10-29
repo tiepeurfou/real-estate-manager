@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date
+from typing import Optional
 
 from sqlmodel import Session, select
 
@@ -63,6 +64,48 @@ class DonneesFinancesBien:
 
 
 @dataclass
+class DepenseParCategorie:
+    categorie: str
+    montant: float
+
+
+@dataclass
+class ReleveDuMois:
+    releve_gestion_id: int
+    gestionnaire_nom: str
+    bien_libelle: str
+    statut_extraction: StatutExtraction
+
+
+@dataclass
+class GestionnaireSansReleve:
+    gestionnaire_nom: str
+    bien_libelle: str
+
+
+@dataclass
+class DonneesMensuelles:
+    periode: date
+    bien_id: Optional[int] = None
+    loyers_attendus: float = 0.0
+    loyers_percus: float = 0.0
+    dettes_totales: float = 0.0
+    depenses_totales: float = 0.0
+    depenses_par_categorie: list[DepenseParCategorie] = field(default_factory=list)
+    releves_recus: list[ReleveDuMois] = field(default_factory=list)
+    gestionnaires_sans_releve: list[GestionnaireSansReleve] = field(default_factory=list)
+
+
+@dataclass
+class DonneesMensuellesParType:
+    type_bien: TypeBien
+    loyers_attendus: float = 0.0
+    loyers_percus: float = 0.0
+    dettes_totales: float = 0.0
+    depenses_totales: float = 0.0
+
+
+@dataclass
 class DonneesTableauDeBord:
     nb_biens: int = 0
     nb_unites: int = 0
@@ -86,6 +129,181 @@ def _dernieres_lignes_par_unite(lignes: list[LignePaiement]) -> dict[int, LigneP
         if actuelle is None or ligne.periode > actuelle.periode:
             dernieres[ligne.unite_locative_id] = ligne
     return dernieres
+
+
+NOMS_MOIS_FR = [
+    "janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+]
+
+
+def libelle_mois_fr(periode: date) -> str:
+    return f"{NOMS_MOIS_FR[periode.month - 1].capitalize()} {periode.year}"
+
+
+def _premier_du_mois_suivant(periode: date) -> date:
+    if periode.month == 12:
+        return date(periode.year + 1, 1, 1)
+    return date(periode.year, periode.month + 1, 1)
+
+
+def calculer_pour_mois(session: Session, periode: date, bien_id: Optional[int] = None) -> DonneesMensuelles:
+    """Vue rétrospective d'un mois donné (passé ou courant) : loyers,
+    impayés, dépenses, et réception des comptes-rendus de gestion.
+
+    Contrairement à `calculer()`/`calculer_pour_bien()` qui donnent la
+    situation "aujourd'hui", la dette ici est calculée **en coupe à la fin
+    du mois demandé** : on ne retient que les `LignePaiement` dont la
+    période est <= au mois demandé avant de prendre la dernière connue par
+    unité. Sans ce filtre, consulter un mois passé afficherait des impayés
+    plus récents que ce mois — trompeur pour un historique.
+    """
+    periode = date(periode.year, periode.month, 1)
+    debut_mois = periode
+    fin_mois = _premier_du_mois_suivant(periode)
+
+    if bien_id is not None:
+        unite_ids = [u.id for u in session.exec(select(UniteLocative).where(UniteLocative.bien_id == bien_id)).all()]
+        lignes_paiement = (
+            session.exec(select(LignePaiement).where(LignePaiement.unite_locative_id.in_(unite_ids))).all()
+            if unite_ids
+            else []
+        )
+        condition_depense = LigneDepense.bien_id == bien_id
+        if unite_ids:
+            condition_depense = condition_depense | LigneDepense.unite_locative_id.in_(unite_ids)
+        lignes_depense = session.exec(select(LigneDepense).where(condition_depense)).all()
+    else:
+        lignes_paiement = session.exec(select(LignePaiement)).all()
+        ids_residences_principales = {
+            b.id for b in session.exec(select(Bien).where(Bien.type == TypeBien.RESIDENCE_PRINCIPALE)).all()
+        }
+        lignes_depense = [
+            d for d in session.exec(select(LigneDepense)).all() if d.bien_id not in ids_residences_principales
+        ]
+
+    lignes_du_mois = [l for l in lignes_paiement if l.periode == periode]
+    lignes_jusqu_a_ce_mois = [l for l in lignes_paiement if l.periode <= periode]
+    dernieres_lignes_en_coupe = _dernieres_lignes_par_unite(lignes_jusqu_a_ce_mois)
+
+    depenses_du_mois = [d for d in lignes_depense if debut_mois <= d.date < fin_mois]
+    totaux_par_categorie: dict[str, float] = {}
+    for d in depenses_du_mois:
+        totaux_par_categorie[d.categorie] = totaux_par_categorie.get(d.categorie, 0.0) + d.montant
+
+    gestionnaires_par_id = {g.id: g for g in session.exec(select(Gestionnaire)).all()}
+    biens_par_id = {b.id: b for b in session.exec(select(Bien)).all()}
+
+    requete_releves = select(ReleveGestion).where(ReleveGestion.periode == periode)
+    if bien_id is not None:
+        requete_releves = requete_releves.where(ReleveGestion.bien_id == bien_id)
+    releves_db = session.exec(requete_releves).all()
+
+    releves_recus = [
+        ReleveDuMois(
+            releve_gestion_id=r.id,
+            gestionnaire_nom=(gestionnaires_par_id.get(r.gestionnaire_id).nom if gestionnaires_par_id.get(r.gestionnaire_id) else "—"),
+            bien_libelle=(biens_par_id.get(r.bien_id).libelle if biens_par_id.get(r.bien_id) else "—"),
+            statut_extraction=r.statut_extraction,
+        )
+        for r in releves_db
+    ]
+
+    # Gestionnaires dont un mandat de gestion était actif à un moment de ce
+    # mois (chevauchement d'intervalles), pour le bien demandé (ou tous),
+    # sans compte-rendu reçu pour cette période précise sur ce bien.
+    unites_par_id = {u.id: u for u in session.exec(select(UniteLocative)).all()}
+    mandats_gestion_actifs = session.exec(
+        select(MandatGestion).where(
+            MandatGestion.role == RoleMandat.GESTION,
+            MandatGestion.date_debut < fin_mois,
+            (MandatGestion.date_fin.is_(None)) | (MandatGestion.date_fin >= debut_mois),
+        )
+    ).all()
+    couples_attendus: set[tuple[int, int]] = set()
+    for m in mandats_gestion_actifs:
+        unite = unites_par_id.get(m.unite_locative_id)
+        if unite is None or (bien_id is not None and unite.bien_id != bien_id):
+            continue
+        couples_attendus.add((m.gestionnaire_id, unite.bien_id))
+
+    couples_recus = {(r.gestionnaire_id, r.bien_id) for r in releves_db}
+    gestionnaires_sans_releve = [
+        GestionnaireSansReleve(
+            gestionnaire_nom=(gestionnaires_par_id.get(gid).nom if gestionnaires_par_id.get(gid) else "—"),
+            bien_libelle=(biens_par_id.get(bid).libelle if biens_par_id.get(bid) else "—"),
+        )
+        for gid, bid in sorted(couples_attendus - couples_recus)
+    ]
+
+    return DonneesMensuelles(
+        periode=periode,
+        bien_id=bien_id,
+        loyers_attendus=sum(l.montant_attendu for l in lignes_du_mois),
+        loyers_percus=sum(l.montant_percu for l in lignes_du_mois),
+        dettes_totales=sum(l.dette_cumulee for l in dernieres_lignes_en_coupe.values() if l.dette_cumulee > 0),
+        depenses_totales=sum(d.montant for d in depenses_du_mois),
+        depenses_par_categorie=[
+            DepenseParCategorie(categorie=c, montant=m) for c, m in sorted(totaux_par_categorie.items())
+        ],
+        releves_recus=releves_recus,
+        gestionnaires_sans_releve=gestionnaires_sans_releve,
+    )
+
+
+def calculer_par_type_pour_mois(session: Session, periode: date) -> list[DonneesMensuellesParType]:
+    """Agrège les mêmes métriques que `calculer_pour_mois()` mais regroupées
+    par type de bien (appartement_isole / immeuble / residence_principale) —
+    pour comparer par exemple les deux immeubles à l'appartement isolé sur
+    un même mois sans additionner les biens à la main. Ne filtre rien par
+    défaut (y compris la résidence principale, contrairement à `calculer()`
+    global) puisque le classement par type la distingue déjà naturellement."""
+    periode = date(periode.year, periode.month, 1)
+    debut_mois = periode
+    fin_mois = _premier_du_mois_suivant(periode)
+
+    biens = session.exec(select(Bien)).all()
+    types_presents = [t for t in TypeBien if any(b.type == t for b in biens)]
+    resultats = {t: DonneesMensuellesParType(type_bien=t) for t in types_presents}
+
+    unites = session.exec(select(UniteLocative)).all()
+    bien_id_par_unite_id = {u.id: u.bien_id for u in unites}
+    type_par_bien_id = {b.id: b.type for b in biens}
+
+    lignes_paiement = session.exec(select(LignePaiement)).all()
+    lignes_du_mois = [l for l in lignes_paiement if l.periode == periode]
+    lignes_jusqu_a_ce_mois = [l for l in lignes_paiement if l.periode <= periode]
+    dernieres_lignes_en_coupe = _dernieres_lignes_par_unite(lignes_jusqu_a_ce_mois)
+
+    for ligne in lignes_du_mois:
+        bien_id = bien_id_par_unite_id.get(ligne.unite_locative_id)
+        type_bien = type_par_bien_id.get(bien_id)
+        if type_bien not in resultats:
+            continue
+        resultats[type_bien].loyers_attendus += ligne.montant_attendu
+        resultats[type_bien].loyers_percus += ligne.montant_percu
+
+    for ligne in dernieres_lignes_en_coupe.values():
+        if ligne.dette_cumulee <= 0:
+            continue
+        bien_id = bien_id_par_unite_id.get(ligne.unite_locative_id)
+        type_bien = type_par_bien_id.get(bien_id)
+        if type_bien not in resultats:
+            continue
+        resultats[type_bien].dettes_totales += ligne.dette_cumulee
+
+    for depense in session.exec(select(LigneDepense)).all():
+        if not (debut_mois <= depense.date < fin_mois):
+            continue
+        bien_id = depense.bien_id
+        if bien_id is None and depense.unite_locative_id is not None:
+            bien_id = bien_id_par_unite_id.get(depense.unite_locative_id)
+        type_bien = type_par_bien_id.get(bien_id)
+        if type_bien not in resultats:
+            continue
+        resultats[type_bien].depenses_totales += depense.montant
+
+    return [resultats[t] for t in types_presents]
 
 
 def calculer_pour_bien(session: Session, bien_id: int, aujourdhui: date | None = None) -> DonneesFinancesBien:

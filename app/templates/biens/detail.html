@@ -11,6 +11,7 @@
         <p class="text-secondary mb-0">{{ bien.adresse_rue }}, {{ bien.adresse_code_postal }} {{ bien.adresse_ville }} · <span class="badge text-bg-light border">{{ bien.type.value }}</span></p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ url_for('tableau_de_bord_mensuel') }}?bien_id={{ bien.id }}" class="btn btn-outline-secondary">Historique mensuel</a>
         <a href="{{ url_for('bien_modifier_formulaire', bien_id=bien.id) }}" class="btn btn-outline-secondary">Modifier</a>
         <form method="post" action="{{ url_for('bien_supprimer', bien_id=bien.id) }}" class="d-inline"
               onsubmit="return confirm('Supprimer ce bien ?');">
