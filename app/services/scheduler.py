@@ -3,11 +3,12 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import Session
 
-from app.config import INGESTION_MAIL_INTERVALLE_HEURES, SAUVEGARDE_DB_HEURE
+from app.config import INGESTION_MAIL_INTERVALLE_HEURES, REVISION_LOYER_HEURE, SAUVEGARDE_DB_HEURE
 from app.database import engine
 from app.services.ingestion_mail import notifier_nouveaux_candidats
 from app.services.mail import ErreurConnexionImap, boite_mail_configuree, nouveau_client_imap
 from app.services.notifications import ErreurNotification, envoyer_notification
+from app.services.revision_loyer import notifier_revisions_a_venir
 from app.services.sauvegarde import sauvegarder_la_base
 
 logger = logging.getLogger(__name__)
@@ -52,16 +53,26 @@ def sauvegarder_la_base_avec_alerte() -> None:
             pass
 
 
+def verifier_revisions_loyer() -> None:
+    """Un cycle du rappel quotidien de révision de loyer : notifie (ntfy)
+    pour chaque occupation active approchant de sa date anniversaire de
+    bail, sans jamais modifier le loyer automatiquement — l'ajustement
+    reste manuel sur /occupations/{id}/modifier."""
+    with Session(engine) as session:
+        notifier_revisions_a_venir(session)
+
+
 def demarrer_scheduler() -> BackgroundScheduler:
     """Démarre les tâches de fond (thread séparé — imaplib est bloquant,
     incompatible avec un scheduler asyncio sans wrapper). Un premier scan de
     la boîte mail est lancé immédiatement au démarrage plutôt que d'attendre
-    le premier intervalle complet ; la sauvegarde, elle, n'a pas besoin de
-    tourner immédiatement (pas aussi urgent, et éviter une sauvegarde à
-    chaque redémarrage du service)."""
+    le premier intervalle complet ; la sauvegarde et le rappel de révision
+    de loyer, eux, n'ont pas besoin de tourner immédiatement (pas aussi
+    urgents, et éviter de les déclencher à chaque redémarrage du service)."""
     scheduler = BackgroundScheduler()
     scheduler.add_job(scanner_la_boite_mail, "interval", hours=INGESTION_MAIL_INTERVALLE_HEURES)
     scheduler.add_job(sauvegarder_la_base_avec_alerte, "cron", hour=SAUVEGARDE_DB_HEURE, minute=0)
+    scheduler.add_job(verifier_revisions_loyer, "cron", hour=REVISION_LOYER_HEURE, minute=0)
     scheduler.start()
     scheduler.add_job(scanner_la_boite_mail)
     return scheduler

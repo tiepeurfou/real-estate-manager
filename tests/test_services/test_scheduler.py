@@ -4,7 +4,12 @@ import app.services.mail as mail_module
 import app.services.notifications as notifications_module
 import app.services.scheduler as scheduler_module
 from app.models import CandidatCourrielNotifie
-from app.services.scheduler import demarrer_scheduler, sauvegarder_la_base_avec_alerte, scanner_la_boite_mail
+from app.services.scheduler import (
+    demarrer_scheduler,
+    sauvegarder_la_base_avec_alerte,
+    scanner_la_boite_mail,
+    verifier_revisions_loyer,
+)
 from tests.aide_pdf import creer_pdf_bytes
 from tests.faux_serveur_imap import FauxServeurImap
 from tests.faux_serveur_ntfy import FauxServeurNtfy
@@ -75,7 +80,7 @@ def test_demarrer_scheduler_configure_le_job_et_s_arrete(monkeypatch, engine):
         jobs_periodiques = [j for j in scheduler.get_jobs() if j.trigger.__class__.__name__ == "IntervalTrigger"]
         assert len(jobs_periodiques) == 1
         jobs_quotidiens = [j for j in scheduler.get_jobs() if j.trigger.__class__.__name__ == "CronTrigger"]
-        assert len(jobs_quotidiens) == 1
+        assert len(jobs_quotidiens) == 2
     finally:
         scheduler.shutdown(wait=False)
 
@@ -124,3 +129,13 @@ def test_sauvegarder_la_base_avec_alerte_echec_notification_n_echoue_pas_non_plu
     monkeypatch.setattr(notifications_module, "NTFY_URL", "http://127.0.0.1:1")
 
     sauvegarder_la_base_avec_alerte()  # ne doit lever aucune exception malgré le double échec
+
+
+def test_verifier_revisions_loyer_utilise_le_moteur_configure_et_ne_plante_pas(monkeypatch, engine):
+    # La logique métier (fenêtre, échéances, mémorisation) est déjà testée
+    # exhaustivement dans test_revision_loyer.py ; ce test-ci vérifie
+    # seulement le câblage côté scheduler (bon moteur, pas de plantage même
+    # sans aucune occupation en base).
+    monkeypatch.setattr(scheduler_module, "engine", engine)
+
+    verifier_revisions_loyer()

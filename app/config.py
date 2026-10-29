@@ -51,3 +51,10 @@ INGESTION_MAIL_INTERVALLE_HEURES = int(os.environ.get("INGESTION_MAIL_INTERVALLE
 # des sauvegardes les plus anciennes (évite de remplir le disque indéfiniment).
 SAUVEGARDE_DB_HEURE = int(os.environ.get("SAUVEGARDE_DB_HEURE", "3"))
 SAUVEGARDE_DB_NOMBRE_JOURS_CONSERVES = int(os.environ.get("SAUVEGARDE_DB_NOMBRE_JOURS_CONSERVES", "30"))
+
+# Rappel de révision annuelle de loyer (app/services/revision_loyer.py) :
+# vérification quotidienne des occupations actives dont la date anniversaire
+# du bail (seul repère disponible — pas d'historique des révisions déjà
+# faites) approche dans REVISION_LOYER_FENETRE_JOURS jours.
+REVISION_LOYER_HEURE = int(os.environ.get("REVISION_LOYER_HEURE", "9"))
+REVISION_LOYER_FENETRE_JOURS = int(os.environ.get("REVISION_LOYER_FENETRE_JOURS", "30"))
