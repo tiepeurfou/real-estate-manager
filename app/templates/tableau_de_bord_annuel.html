@@ -18,7 +18,11 @@
         {% endif %}
     </div>
     <form method="get" action="{{ url_for('tableau_de_bord_annuel') }}" class="d-flex gap-2">
-        <input type="hidden" name="annee" value="{{ donnees.annee }}">
+        <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for a in annees_disponibles %}
+            <option value="{{ a }}" {{ "selected" if donnees.annee == a else "" }}>{{ a }}</option>
+            {% endfor %}
+        </select>
         <select name="bien_id" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">Tous les biens</option>
             {% for b in biens %}
@@ -27,6 +31,11 @@
         </select>
     </form>
 </div>
+
+<p class="text-secondary small mb-4">
+    Vous déclarez en avril 2026 les revenus 2025 ? Choisissez directement <strong>2025</strong> dans la liste ci-dessus
+    plutôt que de naviguer d'une année à l'autre.
+</p>
 
 <p class="text-secondary small">
     Vue pensée pour la déclaration des revenus fonciers (impots.gouv.fr) — loyers, dépenses et éléments de

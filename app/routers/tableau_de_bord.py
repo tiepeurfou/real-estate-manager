@@ -104,6 +104,10 @@ def tableau_de_bord_annuel(
     donnees = calculer_pour_annee(session, annee, bien_id=bien_id)
     donnees_par_type = calculer_par_type_pour_annee(session, annee) if bien_id is None else []
     biens = session.exec(select(Bien).order_by(Bien.libelle)).all()
+    # Plage généreuse (15 ans) plutôt que bornée aux données existantes : on
+    # veut pouvoir choisir directement une année sans devoir déjà y avoir
+    # saisi quoi que ce soit (ex. déclarer 2025 en avril 2026).
+    annees_disponibles = list(range(aujourdhui.year, aujourdhui.year - 15, -1))
 
     return templates.TemplateResponse(
         request,
@@ -111,6 +115,7 @@ def tableau_de_bord_annuel(
         {
             "utilisateur": utilisateur,
             "donnees": donnees,
+            "annees_disponibles": annees_disponibles,
             "donnees_par_type": donnees_par_type,
             "biens": biens,
             "bien_id_filtre": bien_id,

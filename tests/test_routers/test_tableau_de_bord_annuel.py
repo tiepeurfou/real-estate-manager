@@ -41,6 +41,15 @@ def test_annee_passee_n_affiche_pas_le_badge_annee_en_cours(client_connecte):
     assert "année en cours" not in reponse.text
 
 
+def test_selecteur_d_annee_permet_de_sauter_directement_a_une_annee(client_connecte):
+    # Pas besoin de cliquer sur "précédent" N fois : un select direct, comme
+    # le sélecteur de bien déjà présent.
+    reponse = client_connecte.get("/tableau-de-bord/annee")
+    assert reponse.status_code == 200
+    assert '<select name="annee"' in reponse.text
+    assert "2020" in reponse.text  # fait partie de la plage de 15 ans en arrière
+
+
 def test_annee_invalide(client_connecte):
     assert client_connecte.get("/tableau-de-bord/annee", params={"annee": 0}).status_code == 400
 
