@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
-import app.routers.ingestion_mail as ingestion_mail_module
+import app.services.mail as mail_module
 import app.services.releves as releves_module
 from app.config import BASE_DIR
 from app.database import get_session
@@ -18,11 +18,15 @@ from app.security import hash_password
 def _boite_mail_non_configuree_par_defaut(monkeypatch):
     """Le vrai .env du développeur peut contenir de vrais identifiants Gmail
     (nécessaires pour l'usage réel de l'appli) — les tests ne doivent jamais
-    s'y connecter ni dépendre de sa présence/absence. Un test qui veut
-    simuler une boîte configurée repointe explicitement ces attributs
-    (voir tests/test_routers/test_ingestion_mail.py)."""
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_ADRESSE", "")
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_MOT_DE_PASSE", "")
+    s'y connecter ni dépendre de sa présence/absence. Patché au niveau de
+    app.services.mail (plutôt que du router) : c'est là que boite_mail_configuree()/
+    nouveau_client_imap() lisent ces constantes, et c'est aussi ce que lit le
+    scheduler (app/services/scheduler.py) — sans ce patch au bon endroit, le
+    scan automatique pourrait se connecter à la vraie boîte pendant les tests.
+    Un test qui veut simuler une boîte configurée repointe explicitement ces
+    attributs (voir tests/test_routers/test_ingestion_mail.py)."""
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_ADRESSE", "")
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_MOT_DE_PASSE", "")
 
 
 @pytest.fixture()

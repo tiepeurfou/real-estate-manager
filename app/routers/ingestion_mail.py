@@ -2,26 +2,17 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
-from app.config import GMAIL_IMAP_ADRESSE, GMAIL_IMAP_HOTE, GMAIL_IMAP_MOT_DE_PASSE, GMAIL_IMAP_PORT, GMAIL_IMAP_SSL
 from app.database import get_session
 from app.models import Bien, Gestionnaire, Utilisateur
 from app.models.enums import StatutCandidatCourriel
 from app.security import get_current_user
 from app.services.formulaires import parser_date_optionnelle
 from app.services.ingestion_mail import lister_candidats, marquer_traite, recuperer_piece_jointe
-from app.services.mail import ClientImap, ErreurConnexionImap
+from app.services.mail import ErreurConnexionImap, boite_mail_configuree, nouveau_client_imap
 from app.services.releves import enregistrer_releve
 from app.templating import templates
 
 router = APIRouter(prefix="/ingestion-mail", tags=["ingestion-mail"])
-
-
-def _client_configure() -> bool:
-    return bool(GMAIL_IMAP_ADRESSE and GMAIL_IMAP_MOT_DE_PASSE)
-
-
-def _nouveau_client() -> ClientImap:
-    return ClientImap(GMAIL_IMAP_HOTE, GMAIL_IMAP_PORT, GMAIL_IMAP_ADRESSE, GMAIL_IMAP_MOT_DE_PASSE, use_ssl=GMAIL_IMAP_SSL)
 
 
 @router.get("", name="ingestion_mail_liste")
@@ -30,7 +21,7 @@ def ingestion_mail_liste(
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
-    if not _client_configure():
+    if not boite_mail_configuree():
         return templates.TemplateResponse(
             request,
             "ingestion_mail/liste.html",
@@ -48,7 +39,7 @@ def ingestion_mail_liste(
     biens = session.exec(select(Bien).order_by(Bien.libelle)).all()
 
     try:
-        with _nouveau_client() as client:
+        with nouveau_client_imap() as client:
             candidats = lister_candidats(client, session)
     except ErreurConnexionImap as erreur:
         return templates.TemplateResponse(
@@ -106,7 +97,7 @@ def ingestion_mail_importer(
         raise HTTPException(status_code=404, detail="Bien introuvable")
 
     try:
-        with _nouveau_client() as client:
+        with nouveau_client_imap() as client:
             contenu = recuperer_piece_jointe(client, message_uid, nom_piece_jointe)
     except (ErreurConnexionImap, ValueError) as erreur:
         raise HTTPException(status_code=400, detail=str(erreur)) from erreur

@@ -33,3 +33,15 @@ GMAIL_IMAP_ADRESSE = os.environ.get("GMAIL_IMAP_ADRESSE", "")
 GMAIL_IMAP_MOT_DE_PASSE = os.environ.get("GMAIL_IMAP_MOT_DE_PASSE", "")
 # À False uniquement pour pointer les tests vers le faux serveur IMAP local (sans TLS).
 GMAIL_IMAP_SSL = os.environ.get("GMAIL_IMAP_SSL", "true").lower() == "true"
+
+# Notifications push (ntfy.sh, voir app/services/notifications.py). NTFY_TOPIC
+# vide désactive silencieusement l'envoi (aucune notification, pas d'erreur) —
+# pratique pour les tests et pour un déploiement où l'utilisateur n'a pas
+# encore choisi de topic.
+NTFY_URL = os.environ.get("NTFY_URL", "https://ntfy.sh")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
+
+# Fréquence du scan automatique de la boîte mail (app/services/scheduler.py),
+# qui notifie dès qu'un nouveau compte-rendu candidat apparaît, sans import
+# automatique (le tri gestionnaire/bien/période reste manuel sur /ingestion-mail).
+INGESTION_MAIL_INTERVALLE_HEURES = int(os.environ.get("INGESTION_MAIL_INTERVALLE_HEURES", "2"))

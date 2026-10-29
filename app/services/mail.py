@@ -5,6 +5,8 @@ from email import message_from_bytes
 from email.message import Message
 from email.utils import parsedate_to_datetime
 
+from app.config import GMAIL_IMAP_ADRESSE, GMAIL_IMAP_HOTE, GMAIL_IMAP_MOT_DE_PASSE, GMAIL_IMAP_PORT, GMAIL_IMAP_SSL
+
 
 @dataclass
 class PieceJointe:
@@ -63,6 +65,14 @@ def construire_message(uid: str, donnees_brutes: bytes) -> MessageMail:
 
 class ErreurConnexionImap(Exception):
     pass
+
+
+def boite_mail_configuree() -> bool:
+    return bool(GMAIL_IMAP_ADRESSE and GMAIL_IMAP_MOT_DE_PASSE)
+
+
+def nouveau_client_imap() -> "ClientImap":
+    return ClientImap(GMAIL_IMAP_HOTE, GMAIL_IMAP_PORT, GMAIL_IMAP_ADRESSE, GMAIL_IMAP_MOT_DE_PASSE, use_ssl=GMAIL_IMAP_SSL)
 
 
 class ClientImap:

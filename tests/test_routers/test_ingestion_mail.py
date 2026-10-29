@@ -1,6 +1,6 @@
 from email.message import EmailMessage
 
-import app.routers.ingestion_mail as ingestion_mail_module
+import app.services.mail as mail_module
 from app.models import Bien, CandidatCourrielTraite, Gestionnaire, ReleveGestion, UniteLocative
 from app.models.enums import StatutCandidatCourriel, TypeBien
 from tests.aide_pdf import creer_pdf_bytes
@@ -20,11 +20,11 @@ def _email_avec_pdf(nom_pdf="releve.pdf", contenu_pdf: bytes | None = None) -> b
 
 
 def _pointer_vers(monkeypatch, serveur, utilisateur="test@exemple.fr", mot_de_passe="motdepasse"):
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_HOTE", "127.0.0.1")
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_PORT", serveur.port)
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_ADRESSE", utilisateur)
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_MOT_DE_PASSE", mot_de_passe)
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_SSL", False)
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_HOTE", "127.0.0.1")
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_PORT", serveur.port)
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_ADRESSE", utilisateur)
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_MOT_DE_PASSE", mot_de_passe)
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_SSL", False)
 
 
 def _creer_bien_et_gestionnaire(session):
@@ -73,11 +73,11 @@ def test_liste_les_candidats_depuis_le_faux_serveur(client_connecte, monkeypatch
 
 
 def test_erreur_de_connexion_affiche_un_message(client_connecte, monkeypatch, dossier_documents_temporaire):
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_HOTE", "127.0.0.1")
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_PORT", 1)
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_ADRESSE", "test@exemple.fr")
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_MOT_DE_PASSE", "motdepasse")
-    monkeypatch.setattr(ingestion_mail_module, "GMAIL_IMAP_SSL", False)
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_HOTE", "127.0.0.1")
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_PORT", 1)
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_ADRESSE", "test@exemple.fr")
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_MOT_DE_PASSE", "motdepasse")
+    monkeypatch.setattr(mail_module, "GMAIL_IMAP_SSL", False)
 
     reponse = client_connecte.get("/ingestion-mail")
     assert reponse.status_code == 200

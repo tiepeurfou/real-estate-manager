@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 
-from app.models import CandidatCourrielTraite
+from app.models import CandidatCourrielNotifie, CandidatCourrielTraite
 from app.models.enums import StatutCandidatCourriel
 from app.services.mail import ClientImap, MessageMail
+from app.services.notifications import ErreurNotification, envoyer_notification
 
 
 @dataclass
@@ -54,6 +55,42 @@ def recuperer_piece_jointe(client: ClientImap, message_uid: str, nom_piece_joint
         if piece.nom == nom_piece_jointe:
             return piece.contenu
     raise ValueError(f"Pièce jointe « {nom_piece_jointe} » introuvable dans le message {message_uid}")
+
+
+def _deja_notifies(session: Session) -> set[tuple[str, str]]:
+    notifies = session.exec(select(CandidatCourrielNotifie)).all()
+    return {(n.message_uid, n.nom_piece_jointe) for n in notifies}
+
+
+def notifier_nouveaux_candidats(client: ClientImap, session: Session) -> list[CandidatCourriel]:
+    """Envoie une notification push pour chaque candidat jamais notifié
+    auparavant (ni traité, ni déjà notifié à un scan précédent), et
+    mémorise l'envoi pour ne pas re-notifier au prochain scan tant qu'il
+    n'est pas trié par l'utilisateur sur /ingestion-mail. Appelé par le
+    scan automatique périodique (app/services/scheduler.py). Si l'envoi
+    échoue pour un candidat (ex. pas de réseau), il n'est pas marqué
+    notifié — on retentera au prochain scan plutôt que de le perdre."""
+    candidats = lister_candidats(client, session)
+    deja_notifies = _deja_notifies(session)
+    nouveaux = [c for c in candidats if (c.message_uid, c.nom_piece_jointe) not in deja_notifies]
+
+    for candidat in nouveaux:
+        try:
+            envoyer_notification(
+                titre="Nouveau compte-rendu reçu",
+                message=f"{candidat.nom_piece_jointe} — de {candidat.expediteur} — à trier dans l'app",
+            )
+        except ErreurNotification:
+            continue
+        session.add(
+            CandidatCourrielNotifie(
+                message_uid=candidat.message_uid,
+                nom_piece_jointe=candidat.nom_piece_jointe,
+                date_notification=datetime.now(timezone.utc),
+            )
+        )
+    session.commit()
+    return nouveaux
 
 
 def marquer_traite(

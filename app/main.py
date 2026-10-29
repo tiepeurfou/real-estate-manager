@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import RedirectResponse
@@ -5,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, ROOT_PATH, SECRET_KEY, SESSION_COOKIE_HTTPS_ONLY
+from app.services.scheduler import demarrer_scheduler
 from app.routers import (
     auth,
     biens,
@@ -59,6 +62,18 @@ async def redirection_si_non_authentifie(request: Request, exc: HTTPException):
     return await http_exception_handler(request, exc)
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Attaché à app_prefixee (pas à `app`) : c'est elle que lance uvicorn en
+    # production, donc son lifespan est bien déclenché par le serveur ASGI.
+    # Les tests, eux, instancient TestClient(app) directement (voir
+    # tests/conftest.py) — ce lifespan ne tourne donc jamais pendant les
+    # tests, sans qu'il soit nécessaire de le désactiver explicitement.
+    scheduler = demarrer_scheduler()
+    yield
+    scheduler.shutdown(wait=False)
+
+
 # `app` ci-dessus reste l'application "nue" (routes sans préfixe) — c'est elle
 # que les tests importent et exercent directement (/login, /, ...).
 #
@@ -67,7 +82,7 @@ async def redirection_si_non_authentifie(request: Request, exc: HTTPException):
 # d'un reverse proxy qui le retirerait avant de transmettre la requête — le
 # futur reverse proxy de l'autre Raspberry Pi doit au contraire transmettre
 # le chemin tel quel (pas de réécriture de préfixe à configurer côté proxy).
-app_prefixee = FastAPI()
+app_prefixee = FastAPI(lifespan=lifespan)
 app_prefixee.mount(ROOT_PATH, app)
 
 
