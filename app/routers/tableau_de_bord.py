@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.models import Bien, Utilisateur
 from app.security import get_current_user
+from app.services.echeances import FENETRE_JOURS_PAR_DEFAUT, calculer_echeances
 from app.services.tableau_de_bord import (
     calculer,
     calculer_par_type_pour_annee,
@@ -123,4 +124,24 @@ def tableau_de_bord_annuel(
             "annee_suivante": annee + 1,
             "est_annee_courante": annee == aujourdhui.year,
         },
+    )
+
+
+@router.get("/echeances", name="echeances_liste")
+def echeances_liste(
+    request: Request,
+    jours: Optional[int] = None,
+    session: Session = Depends(get_session),
+    utilisateur: Utilisateur = Depends(get_current_user),
+):
+    fenetre_jours = jours if jours is not None else FENETRE_JOURS_PAR_DEFAUT
+    if fenetre_jours <= 0:
+        raise HTTPException(status_code=400, detail="L'horizon doit être positif")
+
+    donnees = calculer_echeances(session, fenetre_jours=fenetre_jours)
+
+    return templates.TemplateResponse(
+        request,
+        "echeances.html",
+        {"utilisateur": utilisateur, "donnees": donnees, "fenetre_jours": fenetre_jours},
     )

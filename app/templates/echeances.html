@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block titre %}Échéances — Real Estate Manager{% endblock %}
+
+{% block contenu %}
+<p><a href="{{ url_for('accueil') }}" class="text-decoration-none">&larr; Tableau de bord</a></p>
+
+<div class="page-titre">
+    <h1 class="h3 mb-0">Échéances à venir</h1>
+    <form method="get" action="{{ url_for('echeances_liste') }}" class="d-flex gap-2 align-items-center">
+        <label for="jours" class="text-secondary small mb-0">Horizon :</label>
+        <select name="jours" id="jours" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="30" {{ "selected" if fenetre_jours == 30 else "" }}>30 jours</option>
+            <option value="90" {{ "selected" if fenetre_jours == 90 else "" }}>90 jours</option>
+            <option value="180" {{ "selected" if fenetre_jours == 180 else "" }}>180 jours</option>
+            <option value="365" {{ "selected" if fenetre_jours == 365 else "" }}>1 an</option>
+        </select>
+    </form>
+</div>
+
+<p class="text-secondary small">
+    Regroupe ce qui est déjà notifié par ntfy (révisions de loyer, DPE) et les alertes du tableau de bord courant
+    (impayés, virements manquants) — pratique pour consulter dans l'app sans dépendre uniquement du téléphone.
+</p>
+
+<h2 class="h5 mb-3">Révisions de loyer à venir</h2>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien</th><th>Unité</th><th>Locataire(s)</th><th class="text-end">Loyer actuel</th><th>Échéance</th></tr>
+            </thead>
+            <tbody>
+                {% for r in donnees.revisions_loyer %}
+                <tr>
+                    <td>{{ r.bien_libelle }}</td>
+                    <td>{{ r.unite_libelle }}</td>
+                    <td>{{ r.locataires_noms or "—" }}</td>
+                    <td class="text-end">{{ "%.2f"|format(r.loyer_actuel) }} €</td>
+                    <td>{{ r.date_echeance }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-secondary text-center py-3">Aucune révision à venir dans cet horizon.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h2 class="h5 mb-3">DPE à renouveler</h2>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien</th><th>Unité</th><th>Date du DPE</th><th>Expiration</th></tr>
+            </thead>
+            <tbody>
+                {% for d in donnees.dpe_a_renouveler %}
+                <tr>
+                    <td>{{ d.bien_libelle }}</td>
+                    <td>{{ d.unite_libelle }}</td>
+                    <td>{{ d.dpe_date }}</td>
+                    <td>{{ d.date_expiration }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-secondary text-center py-3">Aucun DPE à renouveler dans cet horizon.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h2 class="h5 mb-3">Impayés en cours</h2>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Bien</th><th>Unité</th><th>Période</th><th class="text-end">Montant dû</th></tr>
+            </thead>
+            <tbody>
+                {% for a in donnees.impayes %}
+                <tr>
+                    <td>{{ a.bien_libelle }}</td>
+                    <td>{{ a.unite_libelle }}</td>
+                    <td>{{ a.periode.strftime("%m/%Y") }}</td>
+                    <td class="text-end">{{ "%.2f"|format(a.montant_du) }} €</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-secondary text-center py-3">Aucun impayé en cours.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h2 class="h5 mb-3">Virements manquants ce mois</h2>
+<div class="card carte-ombre mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Gestionnaire</th></tr>
+            </thead>
+            <tbody>
+                {% for v in donnees.virements_manquants %}
+                <tr><td>{{ v.gestionnaire_nom }}</td></tr>
+                {% else %}
+                <tr><td class="text-secondary text-center py-3">Aucun virement manquant ce mois.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<p class="text-secondary small">
+    <a href="{{ url_for('accueil') }}">Voir aussi le tableau de bord</a> pour les unités vacantes et les relevés en erreur d'extraction.
+</p>
+{% endblock %}
