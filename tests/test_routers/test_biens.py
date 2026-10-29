@@ -417,6 +417,23 @@ def test_ajout_unite_sur_immeuble(client_connecte, session):
     assert "Appt 2" in detail.text
 
 
+def test_ajout_unite_avec_numero_fiscal(client_connecte, session, engine):
+    bien = _creer_bien_immeuble(session)
+
+    reponse = client_connecte.post(
+        f"/biens/{bien.id}/unites",
+        data={"libelle": "Appt 2", "numero_fiscal": "1234567A"},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        unite = s.exec(select(UniteLocative).where(UniteLocative.libelle == "Appt 2")).first()
+        assert unite.numero_fiscal == "1234567A"
+
+
 def test_ajout_unite_refuse_pour_appartement_isole(client_connecte, session):
     bien = Bien(
         type=TypeBien.APPARTEMENT_ISOLE,

@@ -75,6 +75,46 @@ def test_creation_locataire(client_connecte, engine):
         assert locataire.type_garantie == TypeGarantie.VISALE
 
 
+def test_creation_locataire_avec_date_naissance(client_connecte, engine):
+    from datetime import date
+
+    reponse = client_connecte.post(
+        "/locataires",
+        data={"nom": "Martin", "prenom": "Alice", "type_garantie": "aucune", "date_naissance": "1990-05-12"},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        locataire = s.exec(select(Locataire).where(Locataire.nom == "Martin")).first()
+        assert locataire.date_naissance == date(1990, 5, 12)
+
+
+def test_creation_locataire_sans_date_naissance(client_connecte, engine):
+    reponse = client_connecte.post(
+        "/locataires",
+        data={"nom": "Petit", "prenom": "Léa", "type_garantie": "aucune"},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session, select
+
+    with Session(engine) as s:
+        locataire = s.exec(select(Locataire).where(Locataire.nom == "Petit")).first()
+        assert locataire.date_naissance is None
+
+
+def test_creation_locataire_date_naissance_invalide(client_connecte):
+    reponse = client_connecte.post(
+        "/locataires",
+        data={"nom": "X", "prenom": "Y", "type_garantie": "aucune", "date_naissance": "pas-une-date"},
+    )
+    assert reponse.status_code == 400
+
+
 def test_creation_locataire_garantie_invalide(client_connecte):
     reponse = client_connecte.post(
         "/locataires", data={"nom": "X", "prenom": "Y", "type_garantie": "caution_solidaire"}
@@ -102,6 +142,35 @@ def test_modification_locataire_garantie_invalide(client_connecte, session):
         data={"nom": "Durand", "prenom": "Jean", "type_garantie": "pas-une-garantie"},
     )
     assert reponse.status_code == 400
+
+
+def test_modification_locataire_date_naissance_invalide(client_connecte, session):
+    locataire = _creer_locataire(session)
+
+    reponse = client_connecte.post(
+        f"/locataires/{locataire.id}/modifier",
+        data={"nom": "Durand", "prenom": "Jean", "type_garantie": "aucune", "date_naissance": "pas-une-date"},
+    )
+    assert reponse.status_code == 400
+
+
+def test_modification_locataire_met_a_jour_la_date_naissance(client_connecte, session, engine):
+    from datetime import date
+
+    locataire = _creer_locataire(session)
+
+    reponse = client_connecte.post(
+        f"/locataires/{locataire.id}/modifier",
+        data={"nom": "Durand", "prenom": "Jean", "type_garantie": "aucune", "date_naissance": "1985-03-20"},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session
+
+    with Session(engine) as s:
+        locataire_maj = s.get(Locataire, locataire.id)
+        assert locataire_maj.date_naissance == date(1985, 3, 20)
 
 
 def test_modification_locataire(client_connecte, session):

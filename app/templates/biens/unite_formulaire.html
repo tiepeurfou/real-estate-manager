@@ -49,9 +49,15 @@
                 <input type="date" class="form-control" id="dpe_date" name="dpe_date" value="{{ unite.dpe_date if unite and unite.dpe_date else '' }}">
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 <label for="regime_fiscal" class="form-label">Régime fiscal</label>
                 <input type="text" class="form-control" id="regime_fiscal" name="regime_fiscal" value="{{ unite.regime_fiscal if unite and unite.regime_fiscal else '' }}">
+            </div>
+
+            <div class="mb-4">
+                <label for="numero_fiscal" class="form-label">Numéro fiscal du logement</label>
+                <input type="text" class="form-control" id="numero_fiscal" name="numero_fiscal" value="{{ unite.numero_fiscal if unite and unite.numero_fiscal else '' }}">
+                <div class="form-text">Optionnel — utile pour la déclaration des revenus fonciers sur impots.gouv.fr.</div>
             </div>
 
             <button type="submit" class="btn btn-primary">Enregistrer</button>

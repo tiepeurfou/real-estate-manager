@@ -6,6 +6,7 @@ from app.database import get_session
 from app.models import Bien, LignePaiement, Locataire, Occupation, OccupationLocataire, UniteLocative, Utilisateur
 from app.models.enums import StatutOccupation, TypeGarantie
 from app.security import get_current_user
+from app.services.formulaires import parser_date_optionnelle
 from app.templating import templates
 
 router = APIRouter(prefix="/locataires", tags=["locataires"])
@@ -80,6 +81,7 @@ def locataire_creer(
     request: Request,
     nom: str = Form(...),
     prenom: str = Form(...),
+    date_naissance: str = Form(""),
     email: str = Form(""),
     telephone: str = Form(""),
     type_garantie: str = Form(TypeGarantie.AUCUNE.value),
@@ -90,6 +92,7 @@ def locataire_creer(
 ):
     try:
         type_garantie_enum = TypeGarantie(type_garantie)
+        date_naissance_parsee = parser_date_optionnelle(date_naissance)
     except ValueError as erreur:
         return templates.TemplateResponse(
             request,
@@ -106,6 +109,7 @@ def locataire_creer(
     locataire = Locataire(
         nom=nom,
         prenom=prenom,
+        date_naissance=date_naissance_parsee,
         email=email or None,
         telephone=telephone or None,
         type_garantie=type_garantie_enum,
@@ -176,6 +180,7 @@ def locataire_modifier(
     locataire_id: int,
     nom: str = Form(...),
     prenom: str = Form(...),
+    date_naissance: str = Form(""),
     email: str = Form(""),
     telephone: str = Form(""),
     type_garantie: str = Form(...),
@@ -190,6 +195,7 @@ def locataire_modifier(
 
     try:
         type_garantie_enum = TypeGarantie(type_garantie)
+        date_naissance_parsee = parser_date_optionnelle(date_naissance)
     except ValueError as erreur:
         return templates.TemplateResponse(
             request,
@@ -205,6 +211,7 @@ def locataire_modifier(
 
     locataire.nom = nom
     locataire.prenom = prenom
+    locataire.date_naissance = date_naissance_parsee
     locataire.email = email or None
     locataire.telephone = telephone or None
     locataire.type_garantie = type_garantie_enum

@@ -288,6 +288,7 @@ def unite_creer(
     dpe_lettre: str = Form(""),
     dpe_date: str = Form(""),
     regime_fiscal: str = Form(""),
+    numero_fiscal: str = Form(""),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
@@ -309,6 +310,7 @@ def unite_creer(
             dpe_lettre=DpeLettre(dpe_lettre) if dpe_lettre else None,
             dpe_date=parser_date_optionnelle(dpe_date),
             regime_fiscal=regime_fiscal or None,
+            numero_fiscal=numero_fiscal or None,
         )
     except ValueError as erreur:
         return templates.TemplateResponse(

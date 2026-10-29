@@ -24,6 +24,12 @@
             </div>
 
             <div class="mb-3">
+                <label for="date_naissance" class="form-label">Date de naissance</label>
+                <input type="date" class="form-control" id="date_naissance" name="date_naissance" value="{{ locataire.date_naissance if locataire and locataire.date_naissance else '' }}">
+                <div class="form-text">Optionnel — utile pour la déclaration des locataires sur impots.gouv.fr.</div>
+            </div>
+
+            <div class="mb-3">
                 <label for="email" class="form-label">Email</label>
                 <input type="email" class="form-control" id="email" name="email" value="{{ locataire.email if locataire and locataire.email else '' }}">
             </div>

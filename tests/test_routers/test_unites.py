@@ -82,6 +82,24 @@ def test_modification_unite(client_connecte, session, engine):
         assert unite_maj.nb_pieces == 3
 
 
+def test_modification_unite_numero_fiscal(client_connecte, session, engine):
+    bien, unites = _creer_immeuble_avec_unites(session, nb_unites=1)
+    unite = unites[0]
+
+    reponse = client_connecte.post(
+        f"/unites/{unite.id}/modifier",
+        data={"libelle": unite.libelle, "numero_fiscal": "9876543B"},
+        follow_redirects=False,
+    )
+    assert reponse.status_code == 303
+
+    from sqlmodel import Session
+
+    with Session(engine) as s:
+        unite_maj = s.get(UniteLocative, unite.id)
+        assert unite_maj.numero_fiscal == "9876543B"
+
+
 def test_modification_unite_dpe_invalide(client_connecte, session):
     _, unites = _creer_immeuble_avec_unites(session, nb_unites=1)
     unite = unites[0]

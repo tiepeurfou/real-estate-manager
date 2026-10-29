@@ -23,6 +23,7 @@ class UniteLocative(SQLModel, table=True):
     dpe_lettre: Optional[DpeLettre] = None
     dpe_date: Optional[date] = None
     regime_fiscal: Optional[str] = None
+    numero_fiscal: Optional[str] = None
 
     bien: "Bien" = Relationship(back_populates="unites")
     mandats: list["MandatGestion"] = Relationship(back_populates="unite_locative")

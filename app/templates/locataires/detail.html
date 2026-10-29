@@ -9,6 +9,7 @@
     <div>
         <h1 class="h3 mb-1">{{ locataire.nom }} {{ locataire.prenom }}</h1>
         <p class="text-secondary mb-0">
+            {% if locataire.date_naissance %}Né(e) le {{ locataire.date_naissance }} · {% endif %}
             {{ locataire.email or "—" }} · {{ locataire.telephone or "—" }} ·
             <span class="badge text-bg-light border">{{ locataire.type_garantie.value }}</span>
             {% if locataire.garant_nom %} · Garant : {{ locataire.garant_nom }} ({{ locataire.garant_contact or "—" }}){% endif %}

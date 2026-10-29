@@ -70,6 +70,7 @@ def unite_modifier(
     dpe_lettre: str = Form(""),
     dpe_date: str = Form(""),
     regime_fiscal: str = Form(""),
+    numero_fiscal: str = Form(""),
     session: Session = Depends(get_session),
     utilisateur: Utilisateur = Depends(get_current_user),
 ):
@@ -104,6 +105,7 @@ def unite_modifier(
     unite.dpe_lettre = dpe_lettre_parsee
     unite.dpe_date = dpe_date_parsee
     unite.regime_fiscal = regime_fiscal or None
+    unite.numero_fiscal = numero_fiscal or None
 
     session.add(unite)
     session.commit()
