@@ -4,7 +4,7 @@ import app.services.mail as mail_module
 import app.services.notifications as notifications_module
 import app.services.scheduler as scheduler_module
 from app.models import CandidatCourrielNotifie
-from app.services.scheduler import demarrer_scheduler, scanner_la_boite_mail
+from app.services.scheduler import demarrer_scheduler, sauvegarder_la_base_avec_alerte, scanner_la_boite_mail
 from tests.aide_pdf import creer_pdf_bytes
 from tests.faux_serveur_imap import FauxServeurImap
 from tests.faux_serveur_ntfy import FauxServeurNtfy
@@ -74,5 +74,53 @@ def test_demarrer_scheduler_configure_le_job_et_s_arrete(monkeypatch, engine):
     try:
         jobs_periodiques = [j for j in scheduler.get_jobs() if j.trigger.__class__.__name__ == "IntervalTrigger"]
         assert len(jobs_periodiques) == 1
+        jobs_quotidiens = [j for j in scheduler.get_jobs() if j.trigger.__class__.__name__ == "CronTrigger"]
+        assert len(jobs_quotidiens) == 1
     finally:
         scheduler.shutdown(wait=False)
+
+
+def test_sauvegarder_la_base_avec_alerte_ne_notifie_pas_en_cas_de_succes(monkeypatch, tmp_path):
+    import app.services.sauvegarde as sauvegarde_module
+
+    source = tmp_path / "app.db"
+    import sqlite3
+
+    sqlite3.connect(source).close()
+    monkeypatch.setattr(sauvegarde_module, "DATABASE_PATH", source)
+    monkeypatch.setattr(sauvegarde_module, "DOSSIER_SAUVEGARDES", tmp_path / "backups")
+
+    with FauxServeurNtfy() as serveur:
+        monkeypatch.setattr(notifications_module, "NTFY_TOPIC", "mon-topic")
+        monkeypatch.setattr(notifications_module, "NTFY_URL", serveur.url)
+
+        sauvegarder_la_base_avec_alerte()
+
+    assert serveur.requetes == []
+
+
+def test_sauvegarder_la_base_avec_alerte_notifie_en_cas_d_echec(monkeypatch):
+    def _sauvegarde_qui_echoue(aujourdhui=None):
+        raise OSError("disque plein")
+
+    monkeypatch.setattr(scheduler_module, "sauvegarder_la_base", _sauvegarde_qui_echoue)
+
+    with FauxServeurNtfy() as serveur:
+        monkeypatch.setattr(notifications_module, "NTFY_TOPIC", "mon-topic")
+        monkeypatch.setattr(notifications_module, "NTFY_URL", serveur.url)
+
+        sauvegarder_la_base_avec_alerte()  # ne doit lever aucune exception
+
+    assert len(serveur.requetes) == 1
+    assert "disque plein" in serveur.requetes[0]["json"]["message"]
+
+
+def test_sauvegarder_la_base_avec_alerte_echec_notification_n_echoue_pas_non_plus(monkeypatch):
+    def _sauvegarde_qui_echoue(aujourdhui=None):
+        raise OSError("disque plein")
+
+    monkeypatch.setattr(scheduler_module, "sauvegarder_la_base", _sauvegarde_qui_echoue)
+    monkeypatch.setattr(notifications_module, "NTFY_TOPIC", "mon-topic")
+    monkeypatch.setattr(notifications_module, "NTFY_URL", "http://127.0.0.1:1")
+
+    sauvegarder_la_base_avec_alerte()  # ne doit lever aucune exception malgré le double échec

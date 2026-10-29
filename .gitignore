@@ -11,6 +11,8 @@ data/documents/*
 !data/documents/.gitkeep
 data/credentials/*
 !data/credentials/.gitkeep
+data/backups/*
+!data/backups/.gitkeep
 
 .env
 *.log

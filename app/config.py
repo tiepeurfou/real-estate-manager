@@ -45,3 +45,9 @@ NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
 # qui notifie dès qu'un nouveau compte-rendu candidat apparaît, sans import
 # automatique (le tri gestionnaire/bien/période reste manuel sur /ingestion-mail).
 INGESTION_MAIL_INTERVALLE_HEURES = int(os.environ.get("INGESTION_MAIL_INTERVALLE_HEURES", "2"))
+
+# Sauvegarde quotidienne de data/app.db vers data/backups/ (app/services/sauvegarde.py).
+# Heure creuse par défaut ; nombre de jours conservés avant purge automatique
+# des sauvegardes les plus anciennes (évite de remplir le disque indéfiniment).
+SAUVEGARDE_DB_HEURE = int(os.environ.get("SAUVEGARDE_DB_HEURE", "3"))
+SAUVEGARDE_DB_NOMBRE_JOURS_CONSERVES = int(os.environ.get("SAUVEGARDE_DB_NOMBRE_JOURS_CONSERVES", "30"))

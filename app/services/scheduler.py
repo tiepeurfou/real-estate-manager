@@ -3,10 +3,12 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import Session
 
-from app.config import INGESTION_MAIL_INTERVALLE_HEURES
+from app.config import INGESTION_MAIL_INTERVALLE_HEURES, SAUVEGARDE_DB_HEURE
 from app.database import engine
 from app.services.ingestion_mail import notifier_nouveaux_candidats
 from app.services.mail import ErreurConnexionImap, boite_mail_configuree, nouveau_client_imap
+from app.services.notifications import ErreurNotification, envoyer_notification
+from app.services.sauvegarde import sauvegarder_la_base
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +31,37 @@ def scanner_la_boite_mail() -> None:
         logger.warning("Scan automatique de la boîte mail impossible : %s", erreur)
 
 
+def sauvegarder_la_base_avec_alerte() -> None:
+    """Sauvegarde quotidienne de la base. N'importe jamais, ne plante jamais
+    le process : une sauvegarde qui échoue silencieusement serait pire que
+    pas de sauvegarde du tout, d'où la notification push en cas d'échec —
+    contrairement au scan mail (qui échoue souvent pour des raisons
+    transitoires de réseau), un échec de sauvegarde (disque plein,
+    permissions) mérite d'être vu rapidement."""
+    try:
+        sauvegarder_la_base()
+    except OSError as erreur:
+        logger.warning("Sauvegarde automatique de la base impossible : %s", erreur)
+        try:
+            envoyer_notification(
+                titre="Sauvegarde de la base échouée",
+                message=f"La sauvegarde automatique de data/app.db a échoué : {erreur}",
+                priorite=5,
+            )
+        except ErreurNotification:
+            pass
+
+
 def demarrer_scheduler() -> BackgroundScheduler:
-    """Démarre le scan périodique en tâche de fond (thread séparé — imaplib
-    est bloquant, incompatible avec un scheduler asyncio sans wrapper). Un
-    premier scan est lancé immédiatement au démarrage plutôt que d'attendre
-    le premier intervalle complet."""
+    """Démarre les tâches de fond (thread séparé — imaplib est bloquant,
+    incompatible avec un scheduler asyncio sans wrapper). Un premier scan de
+    la boîte mail est lancé immédiatement au démarrage plutôt que d'attendre
+    le premier intervalle complet ; la sauvegarde, elle, n'a pas besoin de
+    tourner immédiatement (pas aussi urgent, et éviter une sauvegarde à
+    chaque redémarrage du service)."""
     scheduler = BackgroundScheduler()
     scheduler.add_job(scanner_la_boite_mail, "interval", hours=INGESTION_MAIL_INTERVALLE_HEURES)
+    scheduler.add_job(sauvegarder_la_base_avec_alerte, "cron", hour=SAUVEGARDE_DB_HEURE, minute=0)
     scheduler.start()
     scheduler.add_job(scanner_la_boite_mail)
     return scheduler
